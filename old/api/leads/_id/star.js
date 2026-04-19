@@ -1,7 +1,11 @@
 import { supabase } from '../../../lib/supabase.js'
-import { requireAuth, mapLead } from '../../../lib/auth.js'
+import { requireAuth, requireRole, mapLead } from '../../../lib/auth.js'
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'PATCH, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' }
+const CORS = {
+  'Access-Control-Allow-Origin':  process.env.ALLOWED_ORIGINS || '*',
+  'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
 
 export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
@@ -10,16 +14,13 @@ export default async function handler(req, res) {
 
   const user = requireAuth(req, res)
   if (!user) return
+  if (!requireRole(res, user, 'manager', 'coordinator')) return
 
-  const id = req.query.id
-
-  // Get current count, increment by 1
-  const { data: cur } = await supabase.from('leads').select('msg_count').eq('id', id).single()
   const { data, error } = await supabase
     .from('leads')
-    .update({ msg_count: (cur?.msg_count || 0) + 1 })
-    .eq('id', id)
-    .select('*, call_logs(*)')
+    .update({ starred: req.body.starred })
+    .eq('id', req.query.id)
+    .select(`*, call_logs(*)`)
     .single()
   if (error) return res.status(500).json({ error: error.message })
   return res.json({ lead: mapLead(data) })

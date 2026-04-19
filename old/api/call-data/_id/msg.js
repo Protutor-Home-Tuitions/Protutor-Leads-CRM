@@ -1,7 +1,11 @@
 import { supabase } from '../../../lib/supabase.js'
 import { requireAuth, mapCallData } from '../../../lib/auth.js'
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'PATCH, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' }
+const CORS = {
+  'Access-Control-Allow-Origin':  process.env.ALLOWED_ORIGINS || '*',
+  'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
 
 export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
@@ -11,13 +15,14 @@ export default async function handler(req, res) {
   const user = requireAuth(req, res)
   if (!user) return
 
-  const id = req.query.id
-  const { data: cur } = await supabase.from('call_data').select('msg_count').eq('id', id).single()
+  const { data: current } = await supabase
+    .from('call_data').select('msg_count').eq('id', req.query.id).single()
+
   const { data, error } = await supabase
     .from('call_data')
-    .update({ msg_count: (cur?.msg_count || 0) + 1 })
-    .eq('id', id)
-    .select('*, call_logs(*)')
+    .update({ msg_count: (current?.msg_count || 0) + 1 })
+    .eq('id', req.query.id)
+    .select(`*, call_logs(*)`)
     .single()
   if (error) return res.status(500).json({ error: error.message })
   return res.json({ number: mapCallData(data) })
