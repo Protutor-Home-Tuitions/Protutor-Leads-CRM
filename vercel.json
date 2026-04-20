@@ -1,15 +1,22 @@
 {
-  "routes": [
-    { "src": "/api/leads/([^/]+)/call-log", "dest": "/api/leads/_id/call-log?id=$1" },
-    { "src": "/api/leads/([^/]+)/star",     "dest": "/api/leads/_id/star?id=$1"     },
-    { "src": "/api/leads/([^/]+)/support",  "dest": "/api/leads/_id/support?id=$1"  },
-    { "src": "/api/leads/([^/]+)/msg",      "dest": "/api/leads/_id/msg?id=$1"      },
-    { "src": "/api/leads/([^/]+)",          "dest": "/api/leads/_id/index?id=$1"    },
-    { "src": "/api/call-data/([^/]+)/call-log", "dest": "/api/call-data/_id/call-log?id=$1" },
-    { "src": "/api/call-data/([^/]+)/msg",      "dest": "/api/call-data/_id/msg?id=$1"      },
-    { "src": "/api/call-data/([^/]+)",          "dest": "/api/call-data/_id/index?id=$1"     },
-    { "src": "/protutor-crm-v25\\.js",  "dest": "/protutor-crm-v25.js"  },
-    { "src": "/protutor-crm-v25\\.css", "dest": "/protutor-crm-v25.css" },
-    { "src": "/(.*)",                   "dest": "/protutor-crm-v26.html" }
+  "rewrites": [
+    { "source": "/api/leads/:id/call-log", "destination": "/api/leads/_id/call-log" },
+    { "source": "/api/leads/:id/star",     "destination": "/api/leads/_id/star"     },
+    { "source": "/api/leads/:id/support",  "destination": "/api/leads/_id/support"  },
+    { "source": "/api/leads/:id/msg",      "destination": "/api/leads/_id/msg"      },
+    { "source": "/api/leads/:id",          "destination": "/api/leads/_id/index"    },
+    { "source": "/api/call-data/:id/call-log", "destination": "/api/call-data/_id/call-log" },
+    { "source": "/api/call-data/:id/msg",      "destination": "/api/call-data/_id/msg"      },
+    { "source": "/api/call-data/:id",          "destination": "/api/call-data/_id/index"     }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
+      ]
+    }
   ]
 }
