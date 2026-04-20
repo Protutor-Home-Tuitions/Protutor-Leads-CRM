@@ -7,7 +7,21 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+
+// Vercel body parser — body can be undefined without this
+async function parseBody(req) {
+  if (req.body) return req.body
+  return new Promise((resolve) => {
+    let data = ''
+    req.on('data', chunk => data += chunk)
+    req.on('end', () => {
+      try { resolve(JSON.parse(data)) } catch { resolve({}) }
+    })
+  })
+}
+
 export default async function handler(req, res) {
+  const body = await parseBody(req)
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -16,7 +30,7 @@ export default async function handler(req, res) {
   if (!user) return
 
   const id = req.query.id
-  const { status, notes, followupDate, isOpen } = req.body
+  const { status, notes, followupDate, isOpen } = body
 
   const { data: existing } = await supabase
     .from('call_logs')

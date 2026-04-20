@@ -7,7 +7,16 @@
     { "source": "/api/leads/:id",          "destination": "/api/leads/_id/index"    },
     { "source": "/api/call-data/:id/call-log", "destination": "/api/call-data/_id/call-log" },
     { "source": "/api/call-data/:id/msg",      "destination": "/api/call-data/_id/msg"      },
-    { "source": "/api/call-data/:id",          "destination": "/api/call-data/_id/index"    },
-    { "source": "/",                           "destination": "/protutor-crm-v26.html"       }
+    { "source": "/api/call-data/:id",          "destination": "/api/call-data/_id/index"     }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
+      ]
+    }
   ]
 }

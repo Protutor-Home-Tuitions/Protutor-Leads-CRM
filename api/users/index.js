@@ -7,7 +7,21 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+
+// Vercel body parser — body can be undefined without this
+async function parseBody(req) {
+  if (req.body) return req.body
+  return new Promise((resolve) => {
+    let data = ''
+    req.on('data', chunk => data += chunk)
+    req.on('end', () => {
+      try { resolve(JSON.parse(data)) } catch { resolve({}) }
+    })
+  })
+}
+
 export default async function handler(req, res) {
+  const body = await parseBody(req)
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
   if (req.method === 'OPTIONS') return res.status(200).end()
 
@@ -25,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const b = req.body
+    const b = body
     if (!b.email || !b.password || !b.fname) {
       return res.status(400).json({ error: 'fname, email and password are required' })
     }
