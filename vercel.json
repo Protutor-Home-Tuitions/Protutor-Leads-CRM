@@ -8,6 +8,8 @@
     { "src": "/api/call-data/([^/]+)/call-log", "dest": "/api/call-data/_id/call-log?id=$1" },
     { "src": "/api/call-data/([^/]+)/msg",      "dest": "/api/call-data/_id/msg?id=$1"      },
     { "src": "/api/call-data/([^/]+)",          "dest": "/api/call-data/_id/index?id=$1"     },
-    { "src": "/(.*)",                           "dest": "/protutor-crm-v26.html"              }
+    { "src": "/protutor-crm-v25\\.js",  "dest": "/protutor-crm-v25.js"  },
+    { "src": "/protutor-crm-v25\\.css", "dest": "/protutor-crm-v25.css" },
+    { "src": "/(.*)",                   "dest": "/protutor-crm-v26.html" }
   ]
 }
