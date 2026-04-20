@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "routes": [
     { "src": "/api/leads/([^/]+)/call-log", "dest": "/api/leads/_id/call-log?id=$1" },
     { "src": "/api/leads/([^/]+)/star",     "dest": "/api/leads/_id/star?id=$1"     },
