@@ -1,13 +1,40 @@
 {
   "rewrites": [
-    { "source": "/api/leads/:id/call-log", "destination": "/api/leads/_id/call-log" },
-    { "source": "/api/leads/:id/star",     "destination": "/api/leads/_id/star"     },
-    { "source": "/api/leads/:id/support",  "destination": "/api/leads/_id/support"  },
-    { "source": "/api/leads/:id/msg",      "destination": "/api/leads/_id/msg"      },
-    { "source": "/api/leads/:id",          "destination": "/api/leads/_id/index"    },
-    { "source": "/api/call-data/:id/call-log", "destination": "/api/call-data/_id/call-log" },
-    { "source": "/api/call-data/:id/msg",      "destination": "/api/call-data/_id/msg"      },
-    { "source": "/api/call-data/:id",          "destination": "/api/call-data/_id/index"    },
-    { "source": "/((?!api/).*)",               "destination": "/protutor-crm-v26.html"       }
+    {
+      "source": "/api/leads/:id/call-log",
+      "destination": "/api/leads/_id/call-log"
+    },
+    {
+      "source": "/api/leads/:id/star",
+      "destination": "/api/leads/_id/star"
+    },
+    {
+      "source": "/api/leads/:id/support",
+      "destination": "/api/leads/_id/support"
+    },
+    {
+      "source": "/api/leads/:id/msg",
+      "destination": "/api/leads/_id/msg"
+    },
+    {
+      "source": "/api/leads/:id",
+      "destination": "/api/leads/_id/index"
+    },
+    {
+      "source": "/api/call-data/:id/call-log",
+      "destination": "/api/call-data/_id/call-log"
+    },
+    {
+      "source": "/api/call-data/:id/msg",
+      "destination": "/api/call-data/_id/msg"
+    },
+    {
+      "source": "/api/call-data/:id",
+      "destination": "/api/call-data/_id/index"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/protutor-crm-v26.html"
+    }
   ]
 }
