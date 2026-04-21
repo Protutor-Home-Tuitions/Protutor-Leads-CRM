@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/index"
+    },
+    {
+      "source": "/api/auth/logout",
+      "destination": "/api/auth/index"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/protutor-crm-v26.html"
     }
