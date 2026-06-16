@@ -1,86 +1,44 @@
 import { supabase } from '../../../lib/supabase.js'
-import { requireAuth, mapLead } from '../../../lib/auth.js'
-
-const CORS = {
-  'Access-Control-Allow-Origin':  process.env.ALLOWED_ORIGINS || '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
-
-async function parseBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body
-  return new Promise((resolve) => {
-    let data = ''
-    req.on('data', chunk => data += chunk)
-    req.on('end', () => {
-      try { resolve(JSON.parse(data)) } catch { resolve({}) }
-    })
-  })
-}
+import { requireAuth, mapLead, assertCanAccessLead } from '../../../lib/auth.js'
+import { setCors, parseBody, handledPreflight } from '../../../lib/http.js'
 
 export default async function handler(req, res) {
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
-  if (req.method === 'OPTIONS') return res.status(200).end()
+  setCors(req, res, 'POST')
+  if (handledPreflight(req, res)) return
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const user = requireAuth(req, res)
   if (!user) return
 
-  const body = await parseBody(req)
   const id = req.query.id
-
   if (!id) return res.status(400).json({ error: 'Lead ID missing from request' })
 
-  const { status, notes, followupDate, isOpen } = body
+  // City-scoped authorization: a user may only log calls on leads in their cities.
+  const city = await assertCanAccessLead(res, user, id)
+  if (city === null) return
 
+  const body = await parseBody(req)
+  const { status, notes, followupDate, isOpen } = body
   if (!status) return res.status(400).json({ error: 'status is required' })
 
-  // Get current call count
-  const { data: existing, error: countErr } = await supabase
-    .from('call_logs')
-    .select('n')
-    .eq('lead_id', id)
-    .order('n', { ascending: false })
-    .limit(1)
+  const open = isOpen === true || isOpen === 'true'
 
-  if (countErr) return res.status(500).json({ error: 'Count error: ' + countErr.message })
+  // Insert + number atomically in the database (no read-then-write race).
+  const { error: rpcError } = await supabase.rpc('add_call_log', {
+    p_lead_id:       id,
+    p_calldata_id:   null,
+    p_status:        status,
+    p_notes:         notes || '',
+    p_user_id:       user.id,
+    p_user_name:     user.fname || '',
+    p_is_open:       open,
+    p_followup_date: followupDate || null,
+  })
+  if (rpcError) return res.status(500).json({ error: 'Insert error: ' + rpcError.message })
 
-  const n = existing?.length > 0 ? existing[0].n + 1 : 1
-
-  // Insert call log
-  const { error: logError } = await supabase
-    .from('call_logs')
-    .insert({
-      lead_id:        id,
-      calldata_id:    null,
-      n,
-      status,
-      notes:          notes || '',
-      called_by_name: user.fname || '',
-      is_open:        isOpen === true || isOpen === 'true',
-      followup_date:  followupDate || null,
-    })
-
-  if (logError) return res.status(500).json({ error: 'Insert error: ' + logError.message })
-
-  // Update lead status
-  const { error: leadError } = await supabase
-    .from('leads')
-    .update({
-      status:        (isOpen === true || isOpen === 'true') ? 'open' : 'closed',
-      followup_date: followupDate || null,
-    })
-    .eq('id', id)
-
-  if (leadError) return res.status(500).json({ error: 'Lead update error: ' + leadError.message })
-
-  // Return full updated lead with call logs
+  // Return the full updated lead with its call logs.
   const { data, error } = await supabase
-    .from('leads')
-    .select('*, call_logs(*)')
-    .eq('id', id)
-    .single()
-
+    .from('leads').select('*, call_logs(*)').eq('id', id).single()
   if (error) return res.status(500).json({ error: 'Fetch error: ' + error.message })
   return res.json({ lead: mapLead(data) })
 }

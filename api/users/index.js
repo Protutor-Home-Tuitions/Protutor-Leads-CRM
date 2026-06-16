@@ -1,29 +1,10 @@
 import { supabase } from '../../lib/supabase.js'
 import { requireAuth, requireRole } from '../../lib/auth.js'
-
-const CORS = {
-  'Access-Control-Allow-Origin':  process.env.ALLOWED_ORIGINS || '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
-
-
-// Vercel body parser — body can be undefined without this
-async function parseBody(req) {
-  if (req.body) return req.body
-  return new Promise((resolve) => {
-    let data = ''
-    req.on('data', chunk => data += chunk)
-    req.on('end', () => {
-      try { resolve(JSON.parse(data)) } catch { resolve({}) }
-    })
-  })
-}
+import { setCors, parseBody, handledPreflight } from '../../lib/http.js'
 
 export default async function handler(req, res) {
-  const body = await parseBody(req)
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
-  if (req.method === 'OPTIONS') return res.status(200).end()
+  setCors(req, res, 'GET, POST')
+  if (handledPreflight(req, res)) return
 
   const user = requireAuth(req, res)
   if (!user) return
@@ -39,12 +20,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const b = body
+    const b = await parseBody(req)
     if (!b.email || !b.password || !b.fname) {
       return res.status(400).json({ error: 'fname, email and password are required' })
     }
 
-    // Hash password using Supabase RPC (uses pgcrypto crypt)
+    // Hash password using Supabase RPC (pgcrypto bcrypt).
     const { data: hash, error: hashErr } = await supabase
       .rpc('hash_password', { p_password: b.password })
     if (hashErr) return res.status(500).json({ error: hashErr.message })
@@ -53,13 +34,13 @@ export default async function handler(req, res) {
       .from('users')
       .insert({
         fname:         b.fname,
-        lname:         b.lname         || '',
+        lname:         b.lname  || '',
         email:         b.email.toLowerCase().trim(),
         mobile:        b.mobile,
         password_hash: hash,
-        role:          b.role          || 'coordinator',
-        status:        b.status        || 'Active',
-        cities:        b.cities        || [],
+        role:          b.role   || 'coordinator',
+        status:        b.status || 'Active',
+        cities:        b.cities || [],
       })
       .select('id, fname, lname, email, mobile, role, status, cities')
       .single()

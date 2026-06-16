@@ -1,33 +1,18 @@
 import { supabase } from '../../../lib/supabase.js'
-import { requireAuth, mapLead } from '../../../lib/auth.js'
-
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'PATCH, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' }
-
-
-// Vercel body parser — body can be undefined without this
-async function parseBody(req) {
-  if (req.body) return req.body
-  return new Promise((resolve) => {
-    let data = ''
-    req.on('data', chunk => data += chunk)
-    req.on('end', () => {
-      try { resolve(JSON.parse(data)) } catch { resolve({}) }
-    })
-  })
-}
+import { requireAuth, mapLead, assertCanAccessLead } from '../../../lib/auth.js'
+import { setCors, handledPreflight } from '../../../lib/http.js'
 
 export default async function handler(req, res) {
-  const body = await parseBody(req)
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
-  if (req.method === 'OPTIONS') return res.status(200).end()
+  setCors(req, res, 'PATCH')
+  if (handledPreflight(req, res)) return
   if (req.method !== 'PATCH') return res.status(405).json({ error: 'Method not allowed' })
 
   const user = requireAuth(req, res)
   if (!user) return
 
   const id = req.query.id
+  if ((await assertCanAccessLead(res, user, id)) === null) return
 
-  // Get current count, increment by 1
   const { data: cur } = await supabase.from('leads').select('msg_count').eq('id', id).single()
   const { data, error } = await supabase
     .from('leads')

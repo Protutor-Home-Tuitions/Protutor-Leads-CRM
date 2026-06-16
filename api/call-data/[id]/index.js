@@ -1,36 +1,20 @@
 import { supabase } from '../../../lib/supabase.js'
 import { requireAuth, requireRole, mapCallData } from '../../../lib/auth.js'
-
-const CORS = {
-  'Access-Control-Allow-Origin':  process.env.ALLOWED_ORIGINS || '*',
-  'Access-Control-Allow-Methods': 'PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
-
-
-// Vercel body parser — body can be undefined without this
-async function parseBody(req) {
-  if (req.body) return req.body
-  return new Promise((resolve) => {
-    let data = ''
-    req.on('data', chunk => data += chunk)
-    req.on('end', () => {
-      try { resolve(JSON.parse(data)) } catch { resolve({}) }
-    })
-  })
-}
+import { setCors, parseBody, handledPreflight } from '../../../lib/http.js'
 
 export default async function handler(req, res) {
-  const body = await parseBody(req)
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v))
-  if (req.method === 'OPTIONS') return res.status(200).end()
+  setCors(req, res, 'PUT, DELETE')
+  if (handledPreflight(req, res)) return
 
   const user = requireAuth(req, res)
   if (!user) return
   const id = req.query.id
 
   if (req.method === 'PUT') {
-    const b = body
+    // Was previously unguarded — now restricted to manager/coordinator.
+    if (!requireRole(res, user, 'manager', 'coordinator')) return
+
+    const b = await parseBody(req)
     const { data, error } = await supabase
       .from('call_data')
       .update({
@@ -43,7 +27,7 @@ export default async function handler(req, res) {
         entry_date:   b.entryDate,
       })
       .eq('id', id)
-      .select(`*, call_logs(*)`)
+      .select('*, call_logs(*)')
       .single()
     if (error) return res.status(500).json({ error: error.message })
     return res.json({ number: mapCallData(data) })
