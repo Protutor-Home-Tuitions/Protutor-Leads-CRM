@@ -2,6 +2,48 @@ import { supabase } from '../../lib/supabase.js'
 import { requireAuth, requireRole, applyLeadFilter, mapLead } from '../../lib/auth.js'
 import { setCors, parseBody, handledPreflight } from '../../lib/http.js'
 
+// Helper — build the row payload for insert/update.
+// Includes the new form-captured fields so a manager creating a lead manually
+// (e.g. for an online student) can store country, online_location, fees, etc.
+function buildLeadRow(b, addedBy) {
+  return {
+    parent_name:      b.parentName  || '',
+    student_name:     b.studentName || '',
+    country_code:     b.countryCode || '91',
+    mobile:           b.mobile,
+    city:             b.city,
+    locality:         b.locality    || '',
+    standard:         b.standard    || '',
+    subjects:         b.subjects    || '',
+    source:           b.source,
+    entry_date:       b.entryDate   || new Date().toISOString().split('T')[0],
+    email:            b.email       || '',
+    tutor_gender:     b.tutorGender || null,
+    importance_level: b.importance  || null,
+    class_mode:       b.classMode   || null,
+    notes:            b.notes       || '',
+
+    // Form-capture fields (also editable from the manual entry form)
+    online_location:  b.onlineLocation || null,
+    country:          b.country         || null,
+    latitude:         b.latitude        || null,
+    longitude:        b.longitude       || null,
+    location_address: b.locationAddress || null,
+    maps_link:        b.mapsLink        || null,
+    days_per_week:    b.daysPerWeek     || null,
+    hours_per_session:b.hoursPerSession || null,
+    hourly_fee:       b.hourlyFee       || null,
+    monthly_estimate: b.monthlyEstimate || null,
+    quote_accepted:   b.quoteAccepted   || null,
+    expected_quote:   b.expectedQuote   || null,
+
+    ...(addedBy && {
+      added_by:      addedBy.id,
+      added_by_name: addedBy.fname,
+    }),
+  }
+}
+
 export default async function handler(req, res) {
   setCors(req, res, 'GET, POST')
   if (handledPreflight(req, res)) return
@@ -37,27 +79,11 @@ export default async function handler(req, res) {
     if (!requireRole(res, user, 'manager', 'coordinator')) return
 
     const b = await parseBody(req)
+    if (!b.mobile) return res.status(400).json({ error: 'mobile is required' })
+
     const { data, error } = await supabase
       .from('leads')
-      .insert({
-        parent_name:      b.parentName  || '',
-        student_name:     b.studentName || '',
-        country_code:     b.countryCode || '91',
-        mobile:           b.mobile,
-        city:             b.city,
-        locality:         b.locality    || '',
-        standard:         b.standard    || '',
-        subjects:         b.subjects    || '',
-        source:           b.source,
-        entry_date:       b.entryDate   || new Date().toISOString().split('T')[0],
-        email:            b.email       || '',
-        tutor_gender:     b.tutorGender || null,
-        importance_level: b.importance  || null,
-        class_mode:       b.classMode   || null,
-        notes:            b.notes       || '',
-        added_by:         user.id,
-        added_by_name:    user.fname,
-      })
+      .insert(buildLeadRow(b, user))
       .select('*, call_logs(*)')
       .single()
 

@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   // ── PUT /api/leads/:id ────────────────────────────────────────
   if (req.method === 'PUT') {
     if (!requireRole(res, user, 'manager', 'coordinator')) return
-    // City-scoped: can't edit a lead outside your cities.
     if ((await assertCanAccessLead(res, user, id)) === null) return
 
     const b = await parseBody(req)
@@ -36,6 +35,20 @@ export default async function handler(req, res) {
         importance_level: b.importance  || null,
         class_mode:       b.classMode   || null,
         notes:            b.notes       || '',
+
+        // Form-capture fields can also be edited manually now
+        online_location:  b.onlineLocation || null,
+        country:          b.country         || null,
+        latitude:         b.latitude        || null,
+        longitude:        b.longitude       || null,
+        location_address: b.locationAddress || null,
+        maps_link:        b.mapsLink        || null,
+        days_per_week:    b.daysPerWeek     || null,
+        hours_per_session:b.hoursPerSession || null,
+        hourly_fee:       b.hourlyFee       || null,
+        monthly_estimate: b.monthlyEstimate || null,
+        quote_accepted:   b.quoteAccepted   || null,
+        expected_quote:   b.expectedQuote   || null,
       })
       .eq('id', id)
       .select('*, call_logs(*)')
