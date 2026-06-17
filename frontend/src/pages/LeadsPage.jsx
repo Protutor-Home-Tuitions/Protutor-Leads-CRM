@@ -107,7 +107,7 @@ export default function LeadsPage({ leads, setLeads }) {
             <Button variant="secondary" size="sm">
               <Download size={13} /> Export
             </Button>
-            <Button variant="dark" onClick={() => setAddOpen(true)}>
+            <Button onClick={() => setAddOpen(true)}>
               <Plus size={13} /> Add New Lead
             </Button>
           </>
@@ -185,20 +185,7 @@ export default function LeadsPage({ leads, setLeads }) {
                   <Phone size={13} color="#2563eb" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: BRAND.textMain }}>
-                    {lead.parentName || lead.mobile}
-                    {lead.classMode && (
-                      <span style={{
-                        marginLeft: '8px', padding: '2px 8px', borderRadius: '4px',
-                        fontSize: '11px', fontWeight: 600,
-                        background: lead.classMode === 'Online' ? '#eff6ff' : '#f3f4f6',
-                        color: lead.classMode === 'Online' ? '#2563eb' : '#6b7280',
-                        border: `1px solid ${lead.classMode === 'Online' ? '#bfdbfe' : '#e5e7eb'}`,
-                      }}>
-                        {lead.classMode}
-                      </span>
-                    )}
-                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: BRAND.textMain }}>{lead.parentName || lead.mobile}</div>
                   <div style={{ fontSize: '12px', color: BRAND.textMuted }}>📞 {lead.mobile}</div>
                   <div style={{ fontSize: '11px', color: BRAND.textMuted }}>
                     Entry: {lead.entryDate} / {lead.source}

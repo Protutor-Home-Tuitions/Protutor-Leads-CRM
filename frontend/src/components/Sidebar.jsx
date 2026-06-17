@@ -1,14 +1,14 @@
 // src/components/Sidebar.jsx
-import { LayoutDashboard, Users, PhoneCall, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, PhoneCall, UserCircle2, LogOut } from 'lucide-react'
 import { BRAND } from '../lib/constants'
 import { useAuth } from '../lib/AuthContext'
 import { Avatar } from './ui'
 
 const NAV = [
   { id: 'dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
-  { id: 'leads',      label: 'Leads',            icon: PhoneCall },
+  { id: 'leads',      label: 'Leads',            icon: UserCircle2 },
   { id: 'call-data',  label: 'Call Data',        icon: PhoneCall },
-  { id: 'users',      label: 'User Management',  icon: Settings },
+  { id: 'users',      label: 'User Management',  icon: Users },
 ]
 
 export default function Sidebar({ current, onNavigate }) {
