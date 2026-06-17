@@ -7,4 +7,13 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://leads.protutor.co.in',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 })
