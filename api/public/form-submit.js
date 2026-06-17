@@ -132,7 +132,17 @@ export default async function handler(req, res) {
   }
 
   const classMode = normalizeClassMode(body.class_mode)
-  const city      = clean(body.city, 50)
+  const rawCity   = clean(body.city, 100)
+
+  // City routing:
+  // - Online leads → city is the literal string "Online" (so coordinators
+  //   with "Online" in their cities array see them), and the parent's
+  //   typed city goes into online_location for the team's reference.
+  // - Offline leads → city is the dropdown value (Bangalore / Chennai / ...)
+  //   and online_location stays NULL.
+  const isOnline = classMode === 'Online'
+  const city            = isOnline ? 'Online' : clean(rawCity, 50)
+  const onlineLocation  = isOnline ? (rawCity || null) : null
 
   // Build the row WITHOUT quote_accepted/expected_quote — those belong
   // to the quote_update step and must not be clobbered if it already ran.
@@ -148,6 +158,7 @@ export default async function handler(req, res) {
     class_mode:       classMode,
     tutor_gender:     normalizeGender(body.tutor_gender),
     city:             city,
+    online_location:  onlineLocation,
     locality:         clean(body.locality, 200),
     notes:            clean(body.notes, 5000),
 
