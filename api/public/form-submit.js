@@ -127,7 +127,7 @@ export default async function handler(req, res) {
   const studentName = clean(body.student_name, 200)
   const mobile      = digitsOnly(body.mobile, 20)
 
-  if (!mobile || mobile.length < 7) {
+  if (!mobile || mobile.length < 5) {
     return res.status(400).json({ error: 'a valid mobile number is required' })
   }
 
