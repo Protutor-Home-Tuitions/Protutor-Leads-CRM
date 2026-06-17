@@ -93,18 +93,16 @@ export default async function handler(req, res) {
   // quote decision fields. If the row doesn't exist yet (e.g. calls
   // arrived out of order), we still upsert so nothing is lost.
   if (action === 'quote_update') {
-    const update = {
-      request_id:       requestId,
-      quote_accepted:   normalizeQuote(body.quote_accepted),
-      expected_quote:   cleanOrNull(body.expected_quote, 60),
-      hourly_fee:       cleanOrNull(body.hourly_fee, 60),
-      monthly_estimate: cleanOrNull(body.monthly_estimate, 120),
-      subscription_action: cleanOrNull(body.subscription_action, 20),
-    }
-
     const { error } = await supabase
       .from('leads')
-      .upsert(update, { onConflict: 'request_id' })
+      .update({
+        quote_accepted:      normalizeQuote(body.quote_accepted),
+        expected_quote:      cleanOrNull(body.expected_quote, 60),
+        hourly_fee:          cleanOrNull(body.hourly_fee, 60),
+        monthly_estimate:    cleanOrNull(body.monthly_estimate, 120),
+        subscription_action: cleanOrNull(body.subscription_action, 20),
+      })
+      .eq('request_id', requestId)
 
     if (error) {
       console.error('[form-submit] quote_update error:', error.message)
