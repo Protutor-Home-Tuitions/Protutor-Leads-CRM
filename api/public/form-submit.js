@@ -68,6 +68,24 @@ function normalizeQuote(value) {
   return null
 }
 
+// ── Referral-channel whitelist ────────────────────────────────────────
+// Maps the short URL code (?r=<code>) to a human-readable channel name.
+// Keeping this server-side means we can add channels without touching the
+// form, and no one can inject arbitrary values into the `source` column.
+// Unknown / missing codes fall back to plain 'Form'.
+const REFERRAL_CHANNELS = {
+  c:  'Call',
+  w:  'WhatsApp',
+  o:  'Old Client',
+  wb: 'Website',
+}
+
+function buildSource(rawCode) {
+  const code = clean(rawCode, 10).toLowerCase()
+  const channel = REFERRAL_CHANNELS[code]
+  return channel ? `Form - ${channel}` : 'Form'
+}
+
 // ── Handler ──────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -124,7 +142,7 @@ export default async function handler(req, res) {
 
   const lead = {
     request_id:       requestId,
-    source:           'Form',
+    source:           buildSource(body.ref),
     parent_name:      parentName,
     student_name:     studentName,
     mobile:           mobile,
