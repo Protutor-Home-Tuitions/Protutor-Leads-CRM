@@ -1,82 +1,112 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// src/lib/constants.js
-// All dropdown options, status lists, city lists — edit here to change app-wide
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Cities (Feature 1: "Online" added before "Others")
 export const CITIES = [
-  'Bangalore', 'Chennai', 'Mumbai', 'Hyderabad', 'Delhi',
-  'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Surat',
-  // 'Online' is a virtual city used for routing online tuition leads to
-  // coordinators who handle them. Online leads have their actual location
-  // stored in the `online_location` field (Dubai, London, Pune etc.).
+  'Bangalore',
+  'Chennai',
+  'Hyderabad',
+  'Mumbai',
+  'Pune',
+  'Kolkata',
   'Online',
-]
+  'Others',
+];
 
-export const LEAD_SOURCES = [
-  'Website', 'Ref by Parent', 'Ref by Tutor', 'Web call',
-  'Instagram', 'Facebook', 'Google', 'Walk-in',
-  // The client intake form (findtutor.protutor.in) writes one of these
-  // based on the ?r=<code> URL parameter the staff member used.
-  'Form', 'Form - Call', 'Form - WhatsApp', 'Form - Old Client', 'Form - Website',
-  'Other',
-]
+// Cities shown as checkboxes in the Add/Edit Employee modals (excludes "Others")
+export const CITIES_FOR_USERS = CITIES.filter((c) => c !== 'Others');
 
-export const CALL_STATUSES = [
-  'Interested',
-  'Not Interested',
-  'Call Back',
-  'No Answer',
+// Source dropdown values (Add/Edit lead form)
+export const SOURCES = [
+  'Website',
+  'Web call',
+  'Ref by Parent',
+  'Ref by Tutor',
+  'Google',
+  'Old client',
+  'Repeat clients',
+  'Whatsapp',
+  'Others',
+];
+
+// Call statuses — Open, part 1
+export const STATUSES_OPEN_PART1 = [
+  'Qualified',
+  'Not Attended',
+  'Not Connected',
+  'Not Reachable',
+  'Busy',
+  'Switch Off',
+];
+
+// Call statuses — Open, part 2 (sets follow-up date)
+export const STATUSES_OPEN_PART2 = [
+  'Call Later',
   'Check with Family',
-  'Demo Scheduled',
-  'Demo Done',
-  'Tutor Assigned',
-  'Closed',
-]
+  'Doubtful',
+];
 
-export const OPEN_STATUSES = [
-  'Interested', 'Call Back', 'Check with Family', 'Demo Scheduled',
-]
+// Statuses that require a follow-up date (same as part 2)
+export const STATUSES_NEEDS_FOLLOWUP = [
+  'Call Later',
+  'Check with Family',
+  'Doubtful',
+];
 
-// Must match the class_mode_enum values in Supabase exactly.
-// 'Offline' covers home tuition; 'Any' means no preference.
-export const CLASS_MODES = ['Online', 'Offline', 'Any']
+// Call statuses — Closed
+export const STATUSES_CLOSED = [
+  'Created Enquiry',
+  'In Mapping',
+  'Got Another',
+  'Not Interested',
+  'Not Required',
+  'Low Fee',
+  'Not Okay for Subscription',
+  'Assigned to Coordinator',
+  'Not the Parent Number',
+  'Start Later',
+  'Outer Area',
+  'Added as Tutor',
+  'Existing Tutor',
+  'Others',
+];
 
-export const TUTOR_GENDERS = ['Male', 'Female', 'No Preference']
+// Class modes
+export const CLASS_MODES = ['Any', 'Online', 'Offline'];
 
-export const IMPORTANCE_LEVELS = ['High', 'Medium', 'Low']
+// Tutor gender options
+export const TUTOR_GENDERS = ['Any', 'Male', 'Female'];
 
-export const STANDARDS = [
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-  'UG', 'PG', 'Other',
-]
+// Roles
+export const ROLES = ['manager', 'coordinator', 'support'];
 
-export const ROLES = ['manager', 'coordinator', 'support']
+// Call-data categories
+export const CATEGORIES = ['Client', 'Tutor', 'Unknown'];
 
-export const CALL_DATA_CATEGORIES = [
-  'Inbound', 'Outbound', 'WhatsApp', 'Missed Call', 'Other',
-]
+// Default empty form state for the Lead modal
+export const EMPTY_LEAD = {
+  parentName: '',
+  studentName: '',
+  mobile: '',
+  countryCode: '91',
+  standard: '',
+  subjects: '',
+  entryDate: '',
+  city: '',
+  locality: '',
+  source: '',
+  email: '',
+  tutorGender: '',
+  importance: '',
+  classMode: '',
+  notes: '',
+  onlineLocation: '',
+};
 
-// Status badge colors
-export const STATUS_COLORS = {
-  open:   { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-  closed: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  Open:   { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-  Closed: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  Active: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  Inactive:{ bg: '#f3f4f6', color: '#6b7280', border: '#e5e7eb' },
-}
-
-// Brand colors
-export const BRAND = {
-  primary:   '#1F2F54',
-  accent:    '#16a34a',
-  accentHover: '#15803d',
-  danger:    '#dc2626',
-  warning:   '#d97706',
-  bg:        '#f5f6fa',
-  card:      '#ffffff',
-  border:    '#e5e7eb',
-  textMain:  '#111827',
-  textSub:   '#6b7280',
-  textMuted: '#9ca3af',
-}
+// Default empty form state for the Add Number modal
+export const EMPTY_NUMBER = {
+  phone: '',
+  name: '',
+  city: '',
+  category: '',
+  source: '',
+  entryDate: '',
+  countryCode: '91',
+};

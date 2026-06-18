@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,18 +23,37 @@ const EMPTY = {
   cities: [],
 };
 
-export function AddUserModal({ open, onClose, onSave }) {
+export function EditUserModal({ open, onClose, onSave, user }) {
   const [form, setForm] = useState(EMPTY);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name || '',
+        email: user.email || '',
+        mobile: user.mobile || '',
+        password: '', // Always blank — leave empty to keep existing password
+        role: user.role || 'coordinator',
+        status: user.status || 'Active',
+        cities: user.cities || [],
+      });
+    } else {
+      setForm(EMPTY);
+    }
+  }, [user, open]);
+
   const setField = (k, v) => setForm((s) => ({ ...s, [k]: v }));
   const toggleCity = (c) =>
     setField('cities', form.cities.includes(c) ? form.cities.filter((x) => x !== c) : [...form.cities, c]);
 
   function submit() {
-    if (!form.name || !form.email || !form.mobile || !form.password) {
-      return alert('All required fields must be filled');
+    if (!form.name || !form.email || !form.mobile) {
+      return alert('Name, email, and mobile are required');
     }
-    onSave(form);
-    setForm(EMPTY);
+    // Password is optional on update — omit when blank so backend keeps the existing one.
+    const payload = { ...form };
+    if (!payload.password) delete payload.password;
+    onSave(payload);
     onClose();
   }
 
@@ -42,8 +61,8 @@ export function AddUserModal({ open, onClose, onSave }) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Employee</DialogTitle>
-          <DialogDescription>Add a new team member with role and city access</DialogDescription>
+          <DialogTitle>Edit Employee</DialogTitle>
+          <DialogDescription>Update team member details and access</DialogDescription>
         </DialogHeader>
         <div className="px-6 pb-2 space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -58,8 +77,13 @@ export function AddUserModal({ open, onClose, onSave }) {
             <FormField label="Email" req>
               <Input type="email" placeholder="email@protutor.in" value={form.email} onChange={(e) => setField('email', e.target.value)} />
             </FormField>
-            <FormField label="Password" req>
-              <Input type="password" placeholder="Set password" value={form.password} onChange={(e) => setField('password', e.target.value)} />
+            <FormField label="Password">
+              <Input
+                type="password"
+                placeholder="Leave blank to keep existing"
+                value={form.password}
+                onChange={(e) => setField('password', e.target.value)}
+              />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -104,7 +128,7 @@ export function AddUserModal({ open, onClose, onSave }) {
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit}>Add Employee</Button>
+          <Button onClick={submit}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

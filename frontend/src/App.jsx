@@ -1,81 +1,456 @@
-// src/App.jsx
-import { useState, useEffect } from 'react'
-import { AuthProvider, useAuth } from './lib/AuthContext'
-import { leads as leadsApi, callData as callDataApi, users as usersApi } from './lib/api'
-import { BRAND } from './lib/constants'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { LoginPage } from './pages/LoginPage';
+import { LeadsPage } from './pages/LeadsPage';
+import { CallDataPage } from './pages/CallDataPage';
+import { UsersPage } from './pages/UsersPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { Bell, Phone, Clock, X } from 'lucide-react';
+import {
+  fetchLeads,
+  fetchCallData,
+  fetchUsers,
+  getToken,
+  clearToken,
+} from './lib/api';
+import { greetingFor, formatFollowupTime } from './lib/utils';
 
-import Sidebar       from './components/Sidebar'
-import LoginPage     from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import LeadsPage     from './pages/LeadsPage'
-import CallDataPage  from './pages/CallDataPage'
-import UsersPage     from './pages/UsersPage'
-import { Spinner }   from './components/ui'
-
-function CRMApp() {
-  const { user } = useAuth()
-  const [page, setPage]       = useState('dashboard')
-  const [leads, setLeads]     = useState([])
-  const [numbers, setNumbers] = useState([])
-  const [users, setUsers]     = useState([])
-  const [loading, setLoading] = useState(false)
-
-  // Load all data once on login
-  useEffect(() => {
-    if (!user) return
-    setLoading(true)
-    Promise.all([
-      leadsApi.list(),
-      callDataApi.list(),
-      usersApi.list().catch(() => ({ users: [] })), // non-managers get 403
-    ]).then(([leadsData, cdData, usersData]) => {
-      setLeads(leadsData.leads || [])
-      setNumbers(cdData.numbers || [])
-      setUsers(usersData.users || [])
-    }).catch(console.error)
-      .finally(() => setLoading(false))
-  }, [user])
-
-  if (!user) return <LoginPage />
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '12px' }}>
-        <Spinner size={32} />
-        <span style={{ fontSize: '13px', color: BRAND.textSub }}>Loading your data…</span>
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    )
-  }
-
-  const pages = {
-    dashboard: <DashboardPage leads={leads} numbers={numbers} users={users} />,
-    leads:     <LeadsPage leads={leads} setLeads={setLeads} />,
-    'call-data': <CallDataPage numbers={numbers} setNumbers={setNumbers} />,
-    users:     <UsersPage users={users} setUsers={setUsers} />,
-  }
-
-  return (
-    <>
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: ${BRAND.bg}; }
-        @keyframes spin { to { transform: rotate(360deg) } }
-      `}</style>
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Sidebar current={page} onNavigate={setPage} />
-        <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {pages[page] || pages.dashboard}
-        </main>
-      </div>
-    </>
-  )
-}
+const PAGE_TITLES = {
+  leads: 'Leads',
+  calldata: 'Call Data',
+  users: 'User Management',
+  dashboard: 'Dashboard',
+};
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState('leads');
+  const [users, setUsers] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [callData, setCallData] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [alerts, setAlerts] = useState([]);
+  const [dismissed, setDismissed] = useState(new Set());
+  const [phoneStatusMap] = useState(new Map());
+  const alertsRef = useRef(null);
+  const greetingRef = useRef(null);
+
+  // ---- 401 handler: backend lost auth → clear token and bounce to login ----
+  useEffect(() => {
+    function onUnauth() {
+      setUser(null);
+      setLeads([]);
+      setCallData([]);
+      setUsers([]);
+    }
+    window.addEventListener('crm:unauthorized', onUnauth);
+    return () => window.removeEventListener('crm:unauthorized', onUnauth);
+  }, []);
+
+  // ---- Re-hydrate: if we have a token but no user, the page reloaded; force re-login ----
+  // (the user object isn't stored separately — only the token).
+  useEffect(() => {
+    if (getToken() && !user) {
+      // We can't reconstruct the user without a /me endpoint, so we leave them at the
+      // login screen. The token is still there if they re-authenticate.
+    }
+  }, [user]);
+
+  // ---- Load all data after login ----
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const [ls, cd] = await Promise.all([fetchLeads(), fetchCallData()]);
+        setLeads(ls || []);
+        setCallData(cd || []);
+      } catch (e) {
+        console.error('Failed to load leads/call-data:', e);
+      }
+      if (user.role === 'manager') {
+        try {
+          const us = await fetchUsers();
+          setUsers(us || []);
+        } catch (e) {
+          console.error('Failed to load users:', e);
+        }
+      }
+    })();
+  }, [user]);
+
+  // ---- Follow-up alert computation ----
+  const computeAlerts = useCallback(
+    (currentLeads) => {
+      const now = new Date();
+      return currentLeads
+        .filter((l) => l.followupDate && l.status === 'open' && !dismissed.has(l.id))
+        .filter((l) => new Date(l.followupDate) <= now)
+        .map((l) => ({
+          id: l.id,
+          name: l.parentName || l.mobile,
+          number: l.mobile,
+          followupDate: l.followupDate,
+          isOverdue: new Date(l.followupDate) < now,
+        }));
+    },
+    [dismissed]
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    const tick = () => setAlerts(computeAlerts(leads));
+    tick();
+    const t = setInterval(tick, 60_000);
+    return () => clearInterval(t);
+  }, [user, leads, computeAlerts]);
+
+  // Close the alerts popover on outside click
+  useEffect(() => {
+    function onDown(e) {
+      if (alertsRef.current && !alertsRef.current.contains(e.target)) {
+        setAlertsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, []);
+
+  const dismissAlert = (id) => {
+    setDismissed((cur) => new Set([...cur, id]));
+    setAlerts((cur) => cur.filter((a) => a.id !== id));
+  };
+
+  // Pick a greeting once per session (avoids re-randomising on every render)
+  const greeting = useMemo(() => {
+    if (!user) return null;
+    if (!greetingRef.current) {
+      greetingRef.current = greetingFor(user.name || user.fname || 'there');
+    }
+    return greetingRef.current;
+  }, [user]);
+
+  // ---- Render: unauth → login ----
+  if (!user) {
+    return <LoginPage onLogin={setUser} />;
+  }
+
+  const alertCount = alerts.length;
+  const title = PAGE_TITLES[page] || 'Leads';
+
   return (
-    <AuthProvider>
-      <CRMApp />
-    </AuthProvider>
-  )
+    <div className="flex h-screen overflow-hidden bg-[#f5f6fa]">
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <div
+        className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <Sidebar
+          currentPage={page}
+          onNavigate={(p) => { setPage(p); setSidebarOpen(false); }}
+          currentUser={user}
+          onLogout={() => {
+            clearToken();
+            setUser(null);
+            greetingRef.current = null;
+          }}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Topbar */}
+        <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between h-14 flex-shrink-0 gap-4">
+          <button className="lg:hidden text-gray-500 flex-shrink-0" onClick={() => setSidebarOpen(true)}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div className="hidden lg:flex flex-col justify-center min-w-0 flex-1">
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: 700,
+                color: '#111827',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {greeting?.time}
+            </div>
+            <div
+              style={{
+                fontSize: '11.5px',
+                color: '#9ca3af',
+                marginTop: '1px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {greeting?.quote}
+            </div>
+          </div>
+          <span className="lg:hidden text-[14px] font-semibold text-gray-700 flex-1">{title}</span>
+
+          {/* Alert bell */}
+          <div className="relative flex-shrink-0" ref={alertsRef}>
+            <button
+              onClick={() => setAlertsOpen((s) => !s)}
+              style={{
+                position: 'relative',
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                background: alertsOpen ? '#f3f4f6' : '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Bell size={16} color={alertCount > 0 ? '#ea580c' : '#6b7280'} />
+              {alertCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    minWidth: '18px',
+                    height: '18px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: '99px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    boxShadow: '0 0 0 2px #fff',
+                    lineHeight: 1,
+                  }}
+                >
+                  {alertCount > 9 ? '9+' : alertCount}
+                </span>
+              )}
+            </button>
+
+            {alertsOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '44px',
+                  right: 0,
+                  width: '340px',
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                  zIndex: 999,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f3f4f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Follow-up Alerts</div>
+                  {alertCount > 0 && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {alertCount} due
+                    </span>
+                  )}
+                </div>
+                <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                  {alerts.length === 0 ? (
+                    <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', marginBottom: '8px' }}>✅</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>All caught up!</div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>
+                        No follow-ups due right now
+                      </div>
+                    </div>
+                  ) : (
+                    alerts.map((a) => (
+                      <div
+                        key={a.id}
+                        style={{
+                          padding: '12px 16px',
+                          borderBottom: '1px solid #f9fafb',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                          background: a.isOverdue ? '#fff7ed' : '#fff',
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '50%',
+                            background: a.isOverdue ? '#fef3c7' : '#dcfce7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Phone size={15} color={a.isOverdue ? '#ea580c' : '#16a34a'} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: '#111827',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {a.name}
+                            {a.isOverdue && (
+                              <span
+                                style={{
+                                  marginLeft: '6px',
+                                  fontSize: '10px',
+                                  background: '#fecaca',
+                                  color: '#991b1b',
+                                  padding: '1px 6px',
+                                  borderRadius: '3px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                OVERDUE
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: '#6b7280',
+                              marginTop: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Phone size={11} color="#22c55e" /> {a.number}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '11.5px',
+                              color: '#9ca3af',
+                              marginTop: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Clock size={11} /> Call at {formatFollowupTime(a.followupDate)}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => dismissAlert(a.id)}
+                          style={{
+                            width: '22px',
+                            height: '22px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#9ca3af',
+                            borderRadius: '4px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {alertCount > 0 && (
+                  <div
+                    style={{
+                      padding: '10px 16px',
+                      borderTop: '1px solid #f3f4f6',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        alerts.forEach((a) => dismissAlert(a.id));
+                        setAlertsOpen(false);
+                      }}
+                      style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Dismiss all
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Page content */}
+        <div className="flex-1 overflow-hidden">
+          {page === 'leads' && (
+            <LeadsPage
+              leads={leads}
+              setLeads={setLeads}
+              currentUser={user}
+              phoneStatusMap={phoneStatusMap}
+            />
+          )}
+          {page === 'calldata' && (
+            <CallDataPage
+              callData={callData}
+              setCallData={setCallData}
+              currentUser={user}
+              phoneStatusMap={phoneStatusMap}
+            />
+          )}
+          {page === 'users' && user.role === 'manager' && (
+            <UsersPage users={users} setUsers={setUsers} currentUser={user} />
+          )}
+          {page === 'dashboard' && <DashboardPage />}
+        </div>
+      </div>
+    </div>
+  );
 }

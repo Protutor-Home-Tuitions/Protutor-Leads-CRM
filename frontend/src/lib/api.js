@@ -1,124 +1,170 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// src/lib/api.js
-// Single place for every API call. To change a URL or add a field, edit here.
-// ─────────────────────────────────────────────────────────────────────────────
+// All API calls go through this module. Token lives in sessionStorage as `crm_token`.
+// Backend is at the same domain; relative URLs only.
 
-const getToken = () => sessionStorage.getItem('crm_token')
+const TOKEN_KEY = 'crm_token';
 
-function authHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${getToken()}`,
-  }
+export function getToken() {
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+export function setToken(token) {
+  sessionStorage.setItem(TOKEN_KEY, token);
+}
+export function clearToken() {
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
-async function request(url, options = {}) {
-  const res = await fetch(url, { headers: authHeaders(), ...options })
+// Called on 401 — App.jsx subscribes via window event so it can flip back to the login screen.
+function emitUnauthorized() {
+  window.dispatchEvent(new CustomEvent('crm:unauthorized'));
+}
 
-  // 401 = token expired / invalid. Clear session and force re-login.
-  // Without this, the user gets stuck seeing alerts until they manually
-  // refresh the page.
+async function request(path, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(path, { ...options, headers });
+
   if (res.status === 401) {
-    sessionStorage.removeItem('crm_token')
-    sessionStorage.removeItem('crm_user')
-    // Soft reload — AuthProvider will pick up the null user and show login.
-    window.location.reload()
-    throw new Error('Session expired')
+    clearToken();
+    emitUnauthorized();
+    throw new Error('Unauthorized');
   }
 
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
-  return data
+  let body = null;
+  const text = await res.text();
+  if (text) {
+    try { body = JSON.parse(text); } catch { body = { raw: text }; }
+  }
+
+  if (!res.ok) {
+    const message = body?.error || body?.message || `Request failed: ${res.status}`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.body = body;
+    throw err;
+  }
+  return body;
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-export const auth = {
-  login: (email, password) =>
-    request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-  logout: () =>
-    request('/api/auth/logout', { method: 'POST' }),
+// ---- Auth ----
+export async function login(email, password) {
+  const data = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  if (data?.token) setToken(data.token);
+  return data; // { token, user }
 }
 
-// ── Leads ─────────────────────────────────────────────────────────────────────
-export const leads = {
-  list: () => request('/api/leads'),
-
-  create: (lead) =>
-    request('/api/leads', { method: 'POST', body: JSON.stringify(lead) }),
-
-  update: (id, lead) =>
-    request(`/api/leads/${id}`, { method: 'PUT', body: JSON.stringify(lead) }),
-
-  delete: (id) =>
-    request(`/api/leads/${id}`, { method: 'DELETE' }),
-
-  star: (id, starred) =>
-    request(`/api/leads/${id}/star`, {
-      method: 'PATCH',
-      body: JSON.stringify({ starred }),
-    }),
-
-  logCall: (id, { status, type, notes, followupDate }) =>
-    request(`/api/leads/${id}/call-log`, {
-      method: 'POST',
-      body: JSON.stringify({
-        status,
-        notes,
-        followupDate: followupDate || '',
-        isOpen: type === 'open',
-      }),
-    }),
-
-  sendMsg: (id) =>
-    request(`/api/leads/${id}/msg`, { method: 'PATCH' }),
+export function logout() {
+  clearToken();
 }
 
-// ── Call Data ─────────────────────────────────────────────────────────────────
-export const callData = {
-  list: () => request('/api/call-data'),
-
-  create: (item) =>
-    request('/api/call-data', { method: 'POST', body: JSON.stringify(item) }),
-
-  update: (id, item) =>
-    request(`/api/call-data/${id}`, { method: 'PUT', body: JSON.stringify(item) }),
-
-  delete: (id) =>
-    request(`/api/call-data/${id}`, { method: 'DELETE' }),
-
-  logCall: (id, { status, type, notes, followupDate }) =>
-    request(`/api/call-data/${id}/call-log`, {
-      method: 'POST',
-      body: JSON.stringify({
-        status,
-        notes,
-        followupDate: followupDate || '',
-        isOpen: type === 'open',
-      }),
-    }),
-
-  sendMsg: (id) =>
-    request(`/api/call-data/${id}/msg`, { method: 'PATCH' }),
+// ---- Leads ----
+export async function fetchLeads() {
+  const data = await request('/api/leads');
+  return data?.leads || [];
 }
 
-// ── Users ─────────────────────────────────────────────────────────────────────
-// Updates and deletes are routed through `?id=<uuid>` on the same endpoint
-// because the backend is on Vercel's 12-function Hobby plan limit.
-export const users = {
-  list: () => request('/api/users'),
+export async function createLead(payload) {
+  const data = await request('/api/leads', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data?.lead;
+}
 
-  create: (user) =>
-    request('/api/users', { method: 'POST', body: JSON.stringify(user) }),
+export async function updateLead(id, payload) {
+  const data = await request(`/api/leads/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return data?.lead;
+}
 
-  update: (id, user) =>
-    request(`/api/users?id=${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      body: JSON.stringify(user),
-    }),
+export async function toggleLeadStar(id, starred) {
+  return request(`/api/leads/${id}/star`, {
+    method: 'POST',
+    body: JSON.stringify({ starred }),
+  });
+}
 
-  delete: (id) =>
-    request(`/api/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+export async function addLeadCallLog(id, { status, type, notes, followupDate }) {
+  return request(`/api/leads/${id}/call-log`, {
+    method: 'POST',
+    body: JSON.stringify({ status, type, notes, followupDate }),
+  });
+}
+
+export async function bumpLeadMsg(id, msgCount) {
+  return request(`/api/leads/${id}/msg`, {
+    method: 'POST',
+    body: JSON.stringify({ msgCount }),
+  });
+}
+
+// ---- Call Data ----
+export async function fetchCallData() {
+  const data = await request('/api/call-data');
+  return data?.numbers || [];
+}
+
+export async function createNumber(payload) {
+  const data = await request('/api/call-data', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data?.number;
+}
+
+export async function updateNumber(id, payload) {
+  const data = await request(`/api/call-data/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return data?.number;
+}
+
+export async function addNumberCallLog(id, { status, type, notes, followupDate }) {
+  return request(`/api/call-data/${id}/call-log`, {
+    method: 'POST',
+    body: JSON.stringify({ status, type, notes, followupDate }),
+  });
+}
+
+export async function bumpNumberMsg(id, msgCount) {
+  return request(`/api/call-data/${id}/msg`, {
+    method: 'POST',
+    body: JSON.stringify({ msgCount }),
+  });
+}
+
+// ---- Users ----
+export async function fetchUsers() {
+  const data = await request('/api/users');
+  return data?.users || [];
+}
+
+export async function createUser(payload) {
+  const data = await request('/api/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data?.user;
+}
+
+export async function updateUser(id, payload) {
+  // Password is optional on update — caller is responsible for omitting it when blank.
+  const data = await request(`/api/users?id=${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return data?.user;
+}
+
+export async function deleteUser(id) {
+  return request(`/api/users?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
 }

@@ -1,186 +1,180 @@
-// src/pages/UsersPage.jsx
-import { useState } from 'react'
-import { UserPlus, Trash2, Pencil } from 'lucide-react'
-import { Button, Badge, Avatar, PageHeader, EmptyState } from '../components/ui'
-import AddUserModal from '../components/modals/AddUserModal'
-import { users as usersApi } from '../lib/api'
-import { BRAND } from '../lib/constants'
-import { useAuth } from '../lib/AuthContext'
+import { useState, useCallback } from 'react';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { AddUserModal } from '../components/modals/AddUserModal';
+import { EditUserModal } from '../components/modals/EditUserModal';
+import { UserPlus } from 'lucide-react';
+import { createUser, updateUser, deleteUser } from '../lib/api';
 
-export default function UsersPage({ users, setUsers }) {
-  const { user: currentUser } = useAuth()
-  const [editingUser, setEditingUser] = useState(null)
-  const [addOpen, setAddOpen] = useState(false)
-  const [busy, setBusy] = useState(null)  // tracks which row is mid-action
+export function UsersPage({ users, setUsers, currentUser }) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
 
-  // Single save handler that dispatches to create or update.
-  async function handleSave(form) {
-    if (editingUser) {
-      const data = await usersApi.update(editingUser.id, form)
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? data.user : u))
-      setEditingUser(null)
-    } else {
-      const data = await usersApi.create(form)
-      setUsers(prev => [data.user, ...prev])
-    }
-  }
+  const onAdd = useCallback(
+    async (form) => {
+      try {
+        const created = await createUser(form);
+        if (created) {
+          setUsers((cur) => [...cur, created]);
+        } else {
+          setUsers((cur) => [...cur, { id: Date.now(), ...form }]);
+        }
+      } catch (e) {
+        alert('Failed to add: ' + e.message);
+      }
+    },
+    [setUsers]
+  );
 
-  async function handleDelete(u) {
-    if (u.id === currentUser?.id) {
-      alert("You can't delete yourself")
-      return
-    }
-    if (!confirm(`Delete ${u.fname} ${u.lname || ''}? This cannot be undone.`)) return
-    setBusy(u.id)
-    try {
-      await usersApi.delete(u.id)
-      setUsers(prev => prev.filter(x => x.id !== u.id))
-    } catch (err) {
-      alert('Failed to delete: ' + err.message)
-    } finally {
-      setBusy(null)
-    }
-  }
+  const onEdit = useCallback(
+    async (form) => {
+      if (!editing) return;
+      try {
+        const updated = await updateUser(editing.id, form);
+        setUsers((cur) => cur.map((u) => (u.id === editing.id ? { ...u, ...(updated || form) } : u)));
+      } catch (e) {
+        alert('Failed to update: ' + e.message);
+      }
+    },
+    [editing, setUsers]
+  );
 
-  const totalActive   = users.filter(u => u.status === 'Active').length
-  const totalManagers = users.filter(u => u.role === 'manager').length
+  const onDelete = useCallback(
+    async (user) => {
+      if (!window.confirm(`Delete ${user.name}?`)) return;
+      try {
+        await deleteUser(user.id);
+        setUsers((cur) => cur.filter((u) => u.id !== user.id));
+      } catch (e) {
+        alert('Failed to delete: ' + e.message);
+      }
+    },
+    [setUsers]
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '24px 28px' }}>
-
-      <PageHeader
-        title="User Management"
-        subtitle="Manage team members and access levels"
-        actions={
-          <Button onClick={() => setAddOpen(true)}>
-            <UserPlus size={13} /> Add Employee
-          </Button>
-        }
-      />
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
-        {[
-          { label: 'Total Employees', value: users.length, color: BRAND.textMain },
-          { label: 'Active',          value: totalActive,  color: '#16a34a' },
-          { label: 'Managers',        value: totalManagers, color: '#2563eb' },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            background: '#fff', border: `1px solid ${BRAND.border}`,
-            borderRadius: '12px', padding: '16px 20px',
-          }}>
-            <div style={{ fontSize: '28px', fontWeight: 800, color }}>{value}</div>
-            <div style={{ fontSize: '12px', color: BRAND.textMuted, marginTop: '2px' }}>{label}</div>
-          </div>
-        ))}
+    <div className="flex flex-col h-full">
+      <div className="bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between flex-shrink-0">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">User Management</h2>
+          <p className="text-xs text-slate-400">Manage team members and access levels</p>
+        </div>
+        <Button size="sm" onClick={() => setAddOpen(true)}>
+          <UserPlus className="w-3.5 h-3.5" />
+          Add Employee
+        </Button>
       </div>
 
-      {/* Table */}
-      {users.length === 0 ? (
-        <EmptyState icon="👥" title="No employees yet" description="Add your first team member." action={<Button onClick={() => setAddOpen(true)}>Add Employee</Button>} />
-      ) : (
-        <div style={{ background: '#fff', border: `1px solid ${BRAND.border}`, borderRadius: '14px', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: `1px solid #f3f4f6`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: BRAND.textMain }}>Employees</span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: BRAND.textSub, background: '#f3f4f6', padding: '3px 10px', borderRadius: '99px' }}>
+      <div className="p-5 flex-shrink-0">
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          {[
+            { label: 'Total Employees', value: users.length, color: 'text-slate-900' },
+            { label: 'Active', value: users.filter((u) => u.status === 'Active').length, color: 'text-green-600' },
+            { label: 'Managers', value: users.filter((u) => u.role === 'manager').length, color: 'text-blue-600' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className={`text-2xl font-bold ${color}`}>{value}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 px-5 pb-5 overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden h-full flex flex-col">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+            <h3 className="text-sm font-bold text-slate-900">Employees</h3>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
               {users.length} users
             </span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#fafafa' }}>
-                {['Name', 'Mobile', 'Role', 'Status', 'Cities', ''].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 16px', fontSize: '11px', fontWeight: 700,
-                    color: BRAND.textMuted, textTransform: 'uppercase',
-                    letterSpacing: '0.05em', textAlign: 'left',
-                    borderBottom: `1px solid #f0f0f0`,
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, idx) => {
-                const isSelf = u.id === currentUser?.id
-                return (
-                  <tr
-                    key={u.id || idx}
-                    style={{ borderBottom: idx < users.length - 1 ? `1px solid #f5f5f5` : 'none' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#fafbff'}
-                    onMouseLeave={e => e.currentTarget.style.background = ''}
-                  >
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Avatar name={u.fname} size={32} />
-                        <div>
-                          <div style={{ fontSize: '14px', fontWeight: 600, color: BRAND.textMain }}>
-                            {u.fname} {u.lname}
-                            {isSelf && (
-                              <span style={{ fontSize: '11px', color: BRAND.textMuted, fontWeight: 500, marginLeft: '6px' }}>
-                                (you)
-                              </span>
-                            )}
+          <div className="overflow-auto flex-1">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 sticky top-0">
+                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <th className="px-4 py-2.5">Name</th>
+                  <th className="px-4 py-2.5">Mobile</th>
+                  <th className="px-4 py-2.5">Role</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5">Cities</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const isMe = u.id === currentUser?.id;
+                  return (
+                    <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {u.name?.[0]?.toUpperCase()}
                           </div>
-                          <div style={{ fontSize: '12px', color: BRAND.textMuted }}>{u.email}</div>
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {u.name}
+                              {isMe && <span className="text-xs text-slate-400 font-normal ml-1.5">(you)</span>}
+                            </div>
+                            <div className="text-xs text-slate-400">{u.email}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151', fontFamily: 'monospace' }}>
-                      {u.mobile || '—'}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '13px', color: '#374151', textTransform: 'capitalize' }}>{u.role}</span>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <Badge status={u.status}>{u.status}</Badge>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {(u.cities || []).slice(0, 3).map(c => (
-                          <span key={c} style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px' }}>{c}</span>
-                        ))}
-                        {(u.cities || []).length > 3 && (
-                          <span style={{ fontSize: '11px', color: BRAND.textMuted }}>+{u.cities.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingUser(u)}
-                          disabled={busy === u.id}
-                        >
-                          <Pencil size={12} /> Edit
-                        </Button>
-                        {!isSelf && (
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-700">{u.mobile}</td>
+                      <td className="px-4 py-3 capitalize text-sm text-slate-700">{u.role}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={u.status === 'Active' ? 'active' : 'default'}>{u.status}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(u.cities || []).slice(0, 3).map((c) => (
+                            <span key={c} className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                              {c}
+                            </span>
+                          ))}
+                          {(u.cities || []).length > 3 && (
+                            <span className="text-xs text-slate-400">+{u.cities.length - 3}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
                           <Button
-                            variant="danger"
+                            variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(u)}
-                            disabled={busy === u.id}
+                            className="text-xs text-slate-500"
+                            onClick={() => setEditing(u)}
                           >
-                            <Trash2 size={12} /> {busy === u.id ? 'Deleting…' : 'Delete'}
+                            ✏️ Edit
                           </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                          {!isMe && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-red-500 hover:bg-red-50"
+                              onClick={() => onDelete(u)}
+                            >
+                              🗑 Delete
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      )}
+      </div>
 
-      <AddUserModal
-        open={addOpen || !!editingUser}
-        onClose={() => { setAddOpen(false); setEditingUser(null) }}
-        onSave={handleSave}
-        editingUser={editingUser}
+      <AddUserModal open={addOpen} onClose={() => setAddOpen(false)} onSave={onAdd} />
+      <EditUserModal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        onSave={onEdit}
+        user={editing}
       />
     </div>
-  )
+  );
 }
