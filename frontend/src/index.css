@@ -8,6 +8,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Desktop/mobile layout switching for Leads and Call Data pages */
+.lp-desktop { display: block; }
+.lp-mobile  { display: none; }
+.cd-desktop { display: block; }
+.cd-mobile  { display: none; }
+
+@media (max-width: 768px) {
+  .lp-desktop { display: none; }
+  .lp-mobile  { display: block; }
+  .cd-desktop { display: none; }
+  .cd-mobile  { display: block; }
+}
+
 @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
 @keyframes zoom-in-95 { from { transform: translate(-50%, -50%) scale(0.95) } to { transform: translate(-50%, -50%) scale(1) } }
