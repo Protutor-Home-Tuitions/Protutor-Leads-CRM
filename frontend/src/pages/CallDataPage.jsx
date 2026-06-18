@@ -33,6 +33,7 @@ import {
   isToday,
   digitsOnly,
   sendWhatsAppMissedCall,
+  telLink,
 } from '../lib/utils';
 import { CITIES } from '../lib/constants';
 import {
@@ -533,7 +534,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button type="button" style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <MoreVertical size={15} color="#6b7280" />
+                                <EllipsisVertical size={15} color="#6b7280" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>

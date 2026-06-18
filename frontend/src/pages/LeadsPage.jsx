@@ -737,7 +737,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <button type="button" onClick={() => handleStar(lead)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                          <button type="button" onClick={() => onToggleStar(lead)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                             <Star size={16} fill={isStarred ? '#f59e0b' : 'none'} color={isStarred ? '#f59e0b' : '#d1d5db'} />
                           </button>
                           <a href={telLink(lead.mobile, lead.countryCode)} style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
@@ -781,7 +781,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
                             <PhoneCall size={13} /> Log
                           </button>
-                          <button type="button" onClick={() => handleWhatsApp(lead)}
+                          <button type="button" onClick={() => onWhatsApp(lead)}
                             style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
                             <MessageCircle size={15} color="#6b7280" />
                             {(lead.msgCount || 0) > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-4px', fontSize: '9px', background: '#6b7280', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lead.msgCount}</span>}
@@ -789,7 +789,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button type="button" style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <MoreVertical size={15} color="#6b7280" />
+                                <EllipsisVertical size={15} color="#6b7280" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
