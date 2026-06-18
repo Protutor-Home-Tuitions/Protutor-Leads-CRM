@@ -1,16 +1,6 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../ui/Dialog';
-import { Button } from '../ui/Button';
-import { Textarea, Label } from '../ui/Input';
 import { PhoneCall } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Modal, ModalBtn } from '../ui/Modal';
 import {
   STATUSES_OPEN_PART1,
   STATUSES_OPEN_PART2,
@@ -24,113 +14,64 @@ export function CallLogModal({ open, onClose, item, type, onSave }) {
   const [notes, setNotes] = useState('');
   const [followupDate, setFollowupDate] = useState('');
 
-  function reset() {
-    setSelected(null);
-    setStatusType(null);
-    setNotes('');
-    setFollowupDate('');
-    onClose();
-  }
-
-  function save() {
-    if (!selected) return;
-    onSave({ status: selected, type: statusType, notes, followupDate });
-    reset();
-  }
+  function reset() { setSelected(null); setStatusType(null); setNotes(''); setFollowupDate(''); onClose(); }
+  function save() { if (!selected) return; onSave({ status: selected, type: statusType, notes, followupDate }); reset(); }
 
   const displayName = item ? (type === 'lead' ? item.parentName || item.mobile : item.name || item.phone) : '';
   const callNumber = item ? (item.callLogs?.length || 0) + 1 : 1;
   const needsFollowup = STATUSES_NEEDS_FOLLOWUP.includes(selected);
 
-  const pill = (label, openOrClosed) => (
-    <button
-      key={label}
-      onClick={() => {
-        setSelected(label);
-        setStatusType(openOrClosed);
-      }}
-      className={cn(
-        'px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer',
-        selected === label && openOrClosed === 'open'
-          ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold'
-          : selected === label && openOrClosed === 'closed'
-          ? 'bg-slate-200 border-slate-500 text-slate-900 font-semibold'
-          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
-      )}
-    >
+  const pill = (label, oc) => (
+    <button key={label} type="button" onClick={() => { setSelected(label); setStatusType(oc); }}
+      style={{
+        padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+        border: selected === label ? (oc === 'open' ? '1.5px solid #3b82f6' : '1.5px solid #64748b') : '1.5px solid #d1d5db',
+        background: selected === label ? (oc === 'open' ? '#eff6ff' : '#e2e8f0') : '#fff',
+        color: selected === label ? (oc === 'open' ? '#1d4ed8' : '#1e293b') : '#6b7280',
+      }}>
       {label}
     </button>
   );
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && reset()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center">
-              <PhoneCall className="w-3.5 h-3.5 text-green-600" />
-            </div>
-            Quick Call Log
-          </DialogTitle>
-          <DialogDescription>
-            Log your call for <strong>{displayName}</strong>. Call #{callNumber}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="px-6 pb-2 space-y-4">
-          <div>
-            <div className="mb-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">
-                Open Status
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-1.5 font-semibold">Part 1</p>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {STATUSES_OPEN_PART1.map((s) => pill(s, 'open'))}
-            </div>
-            <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-1.5 font-semibold">
-              Part 2 — sets follow-up date
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUSES_OPEN_PART2.map((s) => pill(s, 'open'))}
-            </div>
-          </div>
-
-          {needsFollowup && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1.5">
-              <Label className="text-amber-700 text-xs">📅 Next Follow-up Date & Time</Label>
-              <input
-                type="datetime-local"
-                value={followupDate}
-                onChange={(e) => setFollowupDate(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-amber-200 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
-              />
-            </div>
-          )}
-
-          <div>
-            <div className="mb-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 bg-slate-100 border border-slate-200 rounded px-2 py-0.5">
-                Closed Status
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">{STATUSES_CLOSED.map((s) => pill(s, 'closed'))}</div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Notes</Label>
-            <Textarea
-              placeholder="Add call notes here..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
+    <Modal open={open} onClose={reset} width="520px"
+      footer={<><ModalBtn variant="secondary" onClick={reset}>Cancel</ModalBtn><ModalBtn onClick={save}>Save Log</ModalBtn></>}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <PhoneCall size={15} color="#16a34a" />
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={reset}>Cancel</Button>
-          <Button onClick={save} disabled={!selected}>Save Log</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>Quick Call Log</span>
+      </div>
+      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '14px' }}>
+        Log your call for <strong style={{ color: '#111827' }}>{displayName}</strong>. Call #{callNumber}.
+      </p>
+
+      <div style={{ marginBottom: '12px' }}>
+        <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '8px' }}>Open Status</span>
+        <p style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', marginBottom: '5px' }}>Part 1</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>{STATUSES_OPEN_PART1.map(s => pill(s, 'open'))}</div>
+        <p style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', marginBottom: '5px' }}>Part 2 — sets follow-up date</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{STATUSES_OPEN_PART2.map(s => pill(s, 'open'))}</div>
+      </div>
+
+      {needsFollowup && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: '#92400e' }}>📅 Next Follow-up Date & Time</label>
+          <input type="datetime-local" value={followupDate} onChange={e => setFollowupDate(e.target.value)}
+            style={{ marginTop: '4px', width: '100%', height: '36px', border: '1px solid #fde68a', borderRadius: '6px', padding: '0 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+      )}
+
+      <div style={{ marginBottom: '12px' }}>
+        <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '8px' }}>Closed Status</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{STATUSES_CLOSED.map(s => pill(s, 'closed'))}</div>
+      </div>
+
+      <div>
+        <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Notes</label>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add call notes here..." rows={3}
+          style={{ marginTop: '4px', width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+      </div>
+    </Modal>
   );
 }
