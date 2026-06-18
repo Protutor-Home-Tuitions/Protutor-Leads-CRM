@@ -1,26 +1,6 @@
-@import "tailwindcss";
-
-/* Theme tokens used by ui primitives (Button/Input/Dialog focus rings) */
-@theme inline {
-  --color-input: #e5e7eb;
-  --color-ring: #22c55e;
-  --color-muted-foreground: #9ca3af;
-}
-
-/* Radix data-state animations referenced in the original bundle */
-@layer utilities {
-  @keyframes fade-in-0 { from { opacity: 0 } to { opacity: 1 } }
-  @keyframes fade-out-0 { from { opacity: 1 } to { opacity: 0 } }
-  @keyframes zoom-in-95 { from { transform: translate(-50%, -50%) scale(0.95) } to { transform: translate(-50%, -50%) scale(1) } }
-  @keyframes zoom-out-95 { from { transform: translate(-50%, -50%) scale(1) } to { transform: translate(-50%, -50%) scale(0.95) } }
-
-  .data-\[state\=open\]\:animate-in[data-state="open"] { animation-duration: 150ms; animation-fill-mode: forwards; }
-  .data-\[state\=closed\]\:animate-out[data-state="closed"] { animation-duration: 150ms; animation-fill-mode: forwards; }
-  .data-\[state\=open\]\:fade-in-0[data-state="open"] { animation-name: fade-in-0; }
-  .data-\[state\=closed\]\:fade-out-0[data-state="closed"] { animation-name: fade-out-0; }
-  .data-\[state\=open\]\:zoom-in-95[data-state="open"] { animation-name: zoom-in-95; }
-  .data-\[state\=closed\]\:zoom-out-95[data-state="closed"] { animation-name: zoom-out-95; }
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
   margin: 0;
@@ -28,14 +8,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Page-level responsive switches from the original bundle */
-.lp-desktop { display: block; }
-.lp-mobile  { display: none; }
-.cd-desktop { display: block; }
-.cd-mobile  { display: none;  }
-@media (max-width: 768px) {
-  .lp-desktop { display: none; }
-  .lp-mobile  { display: block; }
-  .cd-desktop { display: none;  }
-  .cd-mobile  { display: block; }
-}
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes zoom-in-95 { from { transform: translate(-50%, -50%) scale(0.95) } to { transform: translate(-50%, -50%) scale(1) } }
+@keyframes zoom-out-95 { from { transform: translate(-50%, -50%) scale(1) } to { transform: translate(-50%, -50%) scale(0.95) } }
