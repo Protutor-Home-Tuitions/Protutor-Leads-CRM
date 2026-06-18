@@ -712,14 +712,100 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
             </div>
           </div>
 
-          {/* Card grid (desktop also uses cards — matches v25 mobile layout) */}
-          <div style={{ padding: '2px 0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '14px' }}>
-            {filtered.length === 0 && (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px', gridColumn: '1 / -1' }}>
-                No leads found.
-              </div>
-            )}
-            {filtered.map((lead) => <Card key={lead.id} lead={lead} />)}
+          {/* Table layout — matching old CRM */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '14px', overflow: 'hidden', marginBottom: '24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  {['CONTACT', 'DETAILS', 'STATUS', 'FOLLOW-UP', 'ACTIONS'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>No leads found.</td></tr>
+                )}
+                {filtered.map((lead) => {
+                  const last = lead.callLogs?.length ? lead.callLogs[lead.callLogs.length - 1] : null;
+                  const callCount = lead.callLogs?.length || 0;
+                  const isStarred = lead.starred;
+                  const followup = lead.followupDate ? formatDate(lead.followupDate) : 'No follow-up';
+                  return (
+                    <tr key={lead.id} style={{ borderBottom: '1px solid #f5f5f5' }}
+                      onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
+                      onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <button type="button" onClick={() => handleStar(lead)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            <Star size={16} fill={isStarred ? '#f59e0b' : 'none'} color={isStarred ? '#f59e0b' : '#d1d5db'} />
+                          </button>
+                          <a href={telLink(lead.mobile, lead.countryCode)} style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                            <PhoneCall size={15} color="#16a34a" />
+                          </a>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                              {lead.parentName || lead.mobile}
+                              {lead.classMode && lead.classMode !== 'Any' && (
+                                <span style={{ marginLeft: '8px', padding: '1px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                                  background: lead.classMode === 'Online' ? '#eff6ff' : '#f3f4f6',
+                                  color: lead.classMode === 'Online' ? '#2563eb' : '#6b7280',
+                                  border: `1px solid ${lead.classMode === 'Online' ? '#bfdbfe' : '#e5e7eb'}` }}>
+                                  {lead.classMode}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#9ca3af' }}>📞 {lead.mobile}</div>
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>Entry: {formatDate(lead.entryDate)}{lead.source ? ` / ${lead.source}` : ''}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: '13px', color: '#374151' }}>📍 {[lead.city, lead.locality].filter(Boolean).join(', ') || '—'}</div>
+                        {(lead.standard || lead.subjects) && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>📚 {[lead.standard, lead.subjects].filter(Boolean).join(' - ')}</div>}
+                        {lead.studentName && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Student: {lead.studentName}</div>}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 600,
+                          background: lead.status === 'open' ? '#fff7ed' : '#f3f4f6', color: lead.status === 'open' ? '#ea580c' : '#6b7280',
+                          border: lead.status === 'open' ? '1px solid #fed7aa' : '1px solid #e5e7eb' }}>
+                          {lead.status === 'open' ? 'Open' : 'Closed'}
+                        </span>
+                        {last && <div style={{ marginTop: '4px' }}><span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#1e293b', color: '#fff' }}>{last.status}</span></div>}
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#6b7280' }}>{followup}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button type="button" onClick={() => { setCallLogItem(lead); setCallLogType('lead'); setCallLogOpen(true); }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                            <PhoneCall size={13} /> Log
+                          </button>
+                          <button type="button" onClick={() => handleWhatsApp(lead)}
+                            style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+                            <MessageCircle size={15} color="#6b7280" />
+                            {(lead.msgCount || 0) > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-4px', fontSize: '9px', background: '#6b7280', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lead.msgCount}</span>}
+                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button type="button" style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <MoreVertical size={15} color="#6b7280" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => { setCallLogItem(lead); setCallLogType('lead'); setCallLogOpen(true); }}>📞 Log Call</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewItem(lead); setViewType('lead'); setViewOpen(true); }}>👁 View Details</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setHistoryItem(lead); setHistoryType('lead'); setHistoryOpen(true); }}>📋 Call History</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
