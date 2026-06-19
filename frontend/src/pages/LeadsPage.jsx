@@ -756,7 +756,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                   const hasFormData = lead.hourlyFee || lead.monthlyEstimate || lead.daysPerWeek || lead.hoursPerSession || lead.mapsLink || lead.expectedQuote || (lead.tutorGender && lead.tutorGender !== 'Any') || (lead.quoteAccepted !== undefined && lead.quoteAccepted !== null && lead.quoteAccepted !== '');
                   return (
                     <React.Fragment key={lead.id}>
-                    <tr style={{ borderBottom: hasFormData ? 'none' : '3px double #e5e7eb' }}
+                    <tr style={{ borderBottom: hasFormData ? 'none' : '3px double #9ca3af' }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '18px 20px', minWidth: '240px' }}>
@@ -798,7 +798,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       </td>
                       <td style={{ padding: '18px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <button type="button" onClick={() => () => setLogFor(lead.id)}
+                          <button type="button" onClick={() => setLogFor(lead.id)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                             <PhoneCall size={14} /> Log
                           </button>
@@ -814,7 +814,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => () => setLogFor(lead.id)}>📞 Log Call</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLogFor(lead.id)}>📞 Log Call</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setViewFor(lead.id)}>👁 View Details</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setHistoryFor(lead.id)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
@@ -824,7 +824,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       </td>
                     </tr>
                     {hasFormData && (
-                      <tr style={{ borderBottom: '3px double #e5e7eb' }}>
+                      <tr style={{ borderBottom: '3px double #9ca3af' }}>
                         <td colSpan={5} style={{ padding: '0 20px 14px' }}>
                           <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '8px 0', marginLeft: '82px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
