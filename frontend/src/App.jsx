@@ -485,6 +485,7 @@ export default function App() {
             <LeadsPage
               leads={leads}
               setLeads={setLeads}
+              refetchLeads={refetchLeads}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
             />
@@ -493,6 +494,7 @@ export default function App() {
             <CallDataPage
               callData={callData}
               setCallData={setCallData}
+              refetchCallData={refetchCallData}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
             />
