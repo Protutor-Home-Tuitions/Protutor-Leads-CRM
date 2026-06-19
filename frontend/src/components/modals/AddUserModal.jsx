@@ -28,7 +28,7 @@ export function AddUserModal({ open, onClose, onSave }) {
     if (form.cities.length === 0) {
       return alert('Select at least one city');
     }
-    onSave(form);
+    onSave({ ...form, fname: form.name });
     setForm(EMPTY);
     onClose();
   }

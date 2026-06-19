@@ -18,7 +18,7 @@ export function EditUserModal({ open, onClose, onSave, user }) {
   useEffect(() => {
     if (user) {
       setForm({
-        name: user.name || '',
+        name: user.fname || user.name || '',
         email: user.email || '',
         mobile: user.mobile || '',
         password: '',
@@ -41,7 +41,7 @@ export function EditUserModal({ open, onClose, onSave, user }) {
     if (!form.name || !form.email || !form.mobile) {
       return alert('Name, email, and mobile are required');
     }
-    const payload = { ...form };
+    const payload = { ...form, fname: form.name };
     if (!payload.password) delete payload.password;
     onSave(payload);
   }

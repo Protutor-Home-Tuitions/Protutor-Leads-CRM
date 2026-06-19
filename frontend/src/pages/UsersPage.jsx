@@ -38,7 +38,9 @@ export function UsersPage({ users, setUsers, currentUser }) {
 
   const onDelete = useCallback(
     async (user) => {
-      if (!confirm(`Delete ${user.name || user.email}? This cannot be undone.`)) return;
+      const displayName = user.fname || user.name || user.email;
+      if (!confirm(`Are you sure you want to delete "${displayName}"?`)) return;
+      if (!confirm(`FINAL CONFIRMATION: Deleting "${displayName}" is permanent and cannot be undone. Proceed?`)) return;
       try {
         await deleteUser(user.id);
         setUsers((cur) => cur.filter((u) => u.id !== user.id));
@@ -101,7 +103,7 @@ export function UsersPage({ users, setUsers, currentUser }) {
             </thead>
             <tbody>
               {users.map((u, idx) => {
-                const isMe = currentUser && u.id === currentUser.id;
+                const isMe = currentUser && (u.id === currentUser.id || u.email === currentUser.email);
                 return (
                   <tr
                     key={u.id || idx}
@@ -112,11 +114,11 @@ export function UsersPage({ users, setUsers, currentUser }) {
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>
-                          {u.name?.[0]?.toUpperCase() || '?'}
+                          {(u.fname || u.name)?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                            {u.name}
+                            {u.fname || u.name}
                             {isMe && <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400, marginLeft: '6px' }}>(you)</span>}
                           </div>
                           <div style={{ fontSize: '12px', color: '#9ca3af' }}>{u.email}</div>

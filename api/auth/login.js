@@ -22,6 +22,12 @@ export default async function handler(req, res) {
   }
 
   const user = data[0]
+
+  // Block inactive users
+  if (user.status && user.status !== 'Active') {
+    return res.status(403).json({ error: 'Your account is inactive. Contact your manager.' })
+  }
+
   const token = jwt.sign(
     { id: user.id, fname: user.fname, lname: user.lname, email: user.email, role: user.role, cities: user.cities },
     config.jwtSecret,
