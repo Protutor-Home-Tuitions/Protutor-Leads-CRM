@@ -798,7 +798,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       </td>
                       <td style={{ padding: '18px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <button type="button" onClick={() => { setCallLogItem(lead); setCallLogType('lead'); setCallLogOpen(true); }}
+                          <button type="button" onClick={() => () => setLogFor(lead.id)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                             <PhoneCall size={14} /> Log
                           </button>
@@ -814,9 +814,9 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => { setCallLogItem(lead); setCallLogType('lead'); setCallLogOpen(true); }}>📞 Log Call</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewItem(lead); setViewType('lead'); setViewOpen(true); }}>👁 View Details</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setHistoryItem(lead); setHistoryType('lead'); setHistoryOpen(true); }}>📋 Call History</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => () => setLogFor(lead.id)}>📞 Log Call</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setViewFor(lead.id)}>👁 View Details</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setHistoryFor(lead.id)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
