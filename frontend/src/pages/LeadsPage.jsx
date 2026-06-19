@@ -371,7 +371,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
           <BookOpen size={13} />
           Call History
         </DropdownMenuItem>
-        {isManager && (
+        {(isManager || isCoordinator) && (
           <DropdownMenuItem onClick={() => onMoveToSupport(lead.id)}>
             <UserPlus size={13} />
             Move to Support
@@ -872,6 +872,9 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               <DropdownMenuItem onClick={() => setViewFor(lead.id)}>👁 View Details</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setHistoryItem(lead)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
+                              {(isManager || isCoordinator) && (
+                                <DropdownMenuItem onClick={() => onMoveToSupport(lead.id)}>👥 Move to Support</DropdownMenuItem>
+                              )}
                               {isManager && <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => onDeleteLead(lead)} style={{ color: '#dc2626' }}>🗑 Delete Lead</DropdownMenuItem>
