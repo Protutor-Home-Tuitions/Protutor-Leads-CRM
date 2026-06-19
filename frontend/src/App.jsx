@@ -85,29 +85,66 @@ export default function App() {
 
   // ---- Follow-up alert computation ----
   const computeAlerts = useCallback(
-    (currentLeads) => {
+    (currentLeads, currentCallData, currentUser) => {
       const now = new Date();
-      return currentLeads
-        .filter((l) => l.followupDate && l.status === 'open' && !dismissed.has(l.id))
-        .filter((l) => new Date(l.followupDate) <= now)
-        .map((l) => ({
-          id: l.id,
-          name: l.parentName || l.mobile,
-          number: l.mobile,
-          followupDate: l.followupDate,
-          isOverdue: new Date(l.followupDate) < now,
-        }));
+      const ADVANCE_MS = 15 * 60 * 1000; // 15 minutes
+      const userName = (currentUser?.name || currentUser?.fname || '').toLowerCase();
+
+      // Combine leads + call data
+      const allItems = [
+        ...(currentLeads || []).map(l => ({
+          id: l.id, name: l.parentName || l.mobile, number: l.mobile,
+          followupDate: l.followupDate, status: l.status, callLogs: l.callLogs, _type: 'lead',
+        })),
+        ...(currentCallData || []).map(c => ({
+          id: c.id, name: c.name || c.phone, number: c.phone,
+          followupDate: c.followupDate, status: c.status, callLogs: c.callLogs, _type: 'number',
+        })),
+      ];
+
+      return allItems
+        .filter(item => item.followupDate && item.status === 'open' && !dismissed.has(item.id))
+        .filter(item => {
+          // Only show if last call log was by current user
+          const lastLog = item.callLogs?.length ? item.callLogs[item.callLogs.length - 1] : null;
+          if (!lastLog) return false;
+          const loggedBy = (lastLog.calledBy || lastLog.called_by_name || '').toLowerCase();
+          return loggedBy === userName;
+        })
+        .filter(item => {
+          // Show upcoming (15 mins before) + overdue (up to 24h past)
+          const followup = new Date(item.followupDate);
+          if (isNaN(followup.getTime())) return false;
+          const diffMs = followup.getTime() - now.getTime();
+          return diffMs <= ADVANCE_MS && diffMs > -24 * 60 * 60 * 1000;
+        })
+        .map(item => {
+          const followup = new Date(item.followupDate);
+          const lastLog = item.callLogs[item.callLogs.length - 1];
+          return {
+            id: item.id,
+            name: item.name,
+            number: item.number,
+            followupDate: item.followupDate,
+            isOverdue: followup < now,
+            isUpcoming: followup > now,
+            type: item._type,
+            lastNotes: lastLog?.notes || '',
+            lastStatus: lastLog?.status || '',
+          };
+        })
+        .sort((a, b) => new Date(a.followupDate) - new Date(b.followupDate));
     },
     [dismissed]
   );
 
   useEffect(() => {
     if (!user) return;
-    const tick = () => setAlerts(computeAlerts(leads));
+    const tick = () => setAlerts(computeAlerts(leads, callData, user));
     tick();
     const t = setInterval(tick, 60_000);
     return () => clearInterval(t);
-  }, [user, leads, computeAlerts]);
+  }, [user, leads, callData, computeAlerts]);
 
   // Close the alerts popover on outside click
   useEffect(() => {
@@ -307,7 +344,7 @@ export default function App() {
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: '10px',
-                          background: a.isOverdue ? '#fff7ed' : '#fff',
+                          background: a.isOverdue ? '#fff7ed' : a.isUpcoming ? '#eff6ff' : '#fff',
                           transition: 'background 0.1s',
                         }}
                       >
@@ -337,21 +374,12 @@ export default function App() {
                             }}
                           >
                             {a.name}
-                            {a.isOverdue && (
-                              <span
-                                style={{
-                                  marginLeft: '6px',
-                                  fontSize: '10px',
-                                  background: '#fecaca',
-                                  color: '#991b1b',
-                                  padding: '1px 6px',
-                                  borderRadius: '3px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                OVERDUE
-                              </span>
+                            {a.isOverdue ? (
+                              <span style={{ marginLeft: '6px', fontSize: '10px', background: '#fecaca', color: '#991b1b', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>OVERDUE</span>
+                            ) : (
+                              <span style={{ marginLeft: '6px', fontSize: '10px', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>UPCOMING</span>
                             )}
+                            {a.type === 'number' && <span style={{ marginLeft: '4px', fontSize: '10px', background: '#f3f4f6', color: '#6b7280', padding: '1px 5px', borderRadius: '3px' }}>Call Data</span>}
                           </div>
                           <div
                             style={{
@@ -377,6 +405,8 @@ export default function App() {
                           >
                             <Clock size={11} /> Call at {formatFollowupTime(a.followupDate)}
                           </div>
+                          {a.lastStatus && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Last: {a.lastStatus}</div>}
+                          {a.lastNotes && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {a.lastNotes}</div>}
                         </div>
                         <button
                           onClick={() => dismissAlert(a.id)}
