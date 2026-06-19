@@ -761,7 +761,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '18px 20px', minWidth: '240px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <button type="button" onClick={() => onToggleStar(lead)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+                          <button type="button" onClick={() => onToggleStar(lead.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
                             <Star size={18} fill={isStarred ? '#f59e0b' : 'none'} color={isStarred ? '#f59e0b' : '#d1d5db'} />
                           </button>
                           <a href={telLink(lead.mobile, lead.countryCode)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexShrink: 0 }}>
