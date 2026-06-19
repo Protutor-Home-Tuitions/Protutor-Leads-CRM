@@ -69,10 +69,7 @@ export default function App() {
     if (!user) return;
     (async () => {
       try {
-        const [ls, cd] = await Promise.all([
-            fetchLeads({ status: 'open' }).catch(() => []),
-            fetchCallData({ status: 'open' }).catch(() => []),
-          ]);
+        const [ls, cd] = await Promise.all([fetchLeads(), fetchCallData()]);
         setLeads(ls || []);
         setCallData(cd || []);
       } catch (e) {
@@ -88,21 +85,6 @@ export default function App() {
       }
     })();
   }, [user]);
-
-  // ---- Refetch with different filters ----
-  const refetchLeads = async (params = {}) => {
-    try {
-      const ls = await fetchLeads(params);
-      setLeads(ls || []);
-    } catch (e) { setLeads([]); }
-  };
-
-  const refetchCallData = async (params = {}) => {
-    try {
-      const cd = await fetchCallData(params);
-      setCallData(cd || []);
-    } catch (e) { setCallData([]); }
-  };
 
   // ---- Follow-up alert computation ----
   const computeAlerts = useCallback(
@@ -488,7 +470,6 @@ export default function App() {
             <LeadsPage
               leads={leads}
               setLeads={setLeads}
-              refetchLeads={refetchLeads}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
             />
@@ -497,7 +478,6 @@ export default function App() {
             <CallDataPage
               callData={callData}
               setCallData={setCallData}
-              refetchCallData={refetchCallData}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
             />

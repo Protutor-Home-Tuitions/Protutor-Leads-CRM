@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Select,
   SelectTrigger,
@@ -45,7 +45,7 @@ import {
   bumpNumberMsg,
 } from '../lib/api';
 
-export function CallDataPage({ callData, setCallData, refetchCallData, currentUser, phoneStatusMap = new Map() }) {
+export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMap = new Map() }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
@@ -69,8 +69,8 @@ export function CallDataPage({ callData, setCallData, refetchCallData, currentUs
 
   const filtered = useMemo(() => {
     let list = callData;
-    // Status filtering now done server-side
-    // if (statusFilter === 'closed') — handled server-side
+    if (statusFilter === 'open') list = list.filter((n) => n.status === 'open');
+    if (statusFilter === 'closed') list = list.filter((n) => n.status === 'closed');
     if (cityFilter !== 'all') list = list.filter((n) => n.city === cityFilter);
     if (categoryFilter !== 'all') list = list.filter((n) => n.category === categoryFilter);
     if (search) {

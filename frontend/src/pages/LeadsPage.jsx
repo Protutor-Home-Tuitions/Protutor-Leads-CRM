@@ -68,21 +68,11 @@ function CopyMapLink({ url }) {
   );
 }
 
-export function LeadsPage({ leads, setLeads, refetchLeads, currentUser, phoneStatusMap = new Map() }) {
+export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new Map() }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
-  // Refetch from server when status filter changes (skip first render - App already fetched)
-  const leadsFirstRender = useRef(true);
-  useEffect(() => {
-    if (leadsFirstRender.current) { leadsFirstRender.current = false; return; }
-    if (refetchLeads) {
-      const params = {};
-      if (statusFilter === 'open') params.status = 'open';
-      if (statusFilter === 'closed') params.status = 'closed';
-      refetchLeads(params);
-    }
-  }, [statusFilter]);
+
   const [starFilter, setStarFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -99,8 +89,8 @@ export function LeadsPage({ leads, setLeads, refetchLeads, currentUser, phoneSta
     let list = leads;
     if (isCoordinator) list = list.filter((l) => currentUser.cities.includes(l.city));
     if (isSupport) list = list.filter((l) => l.movedToSupport && currentUser.cities.includes(l.city));
-    // Status filtering now done server-side
-    // if (statusFilter === 'closed') — handled server-side
+    if (statusFilter === 'open') list = list.filter((l) => l.status === 'open');
+    if (statusFilter === 'closed') list = list.filter((l) => l.status === 'closed');
     if (starFilter === 'starred') list = list.filter((l) => l.starred);
     if (starFilter === 'notstarred') list = list.filter((l) => !l.starred);
     if (cityFilter !== 'all') list = list.filter((l) => l.city === cityFilter);
