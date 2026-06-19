@@ -103,8 +103,9 @@ export function logout() {
 }
 
 // ---- Leads ----
-export async function fetchLeads() {
-  const data = await request('/api/leads');
+export async function fetchLeads(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const data = await request('/api/leads' + (qs ? '?' + qs : ''));
   return data?.leads || [];
 }
 
@@ -146,8 +147,9 @@ export async function bumpLeadMsg(id, msgCount) {
 }
 
 // ---- Call Data ----
-export async function fetchCallData() {
-  const data = await request('/api/call-data');
+export async function fetchCallData(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const data = await request('/api/call-data' + (qs ? '?' + qs : ''));
   return data?.numbers || [];
 }
 

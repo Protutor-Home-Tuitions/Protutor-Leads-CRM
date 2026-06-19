@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   // ── GET /api/call-data ────────────────────────────────────────
   if (req.method === 'GET') {
-    const limit  = Math.min(parseInt(req.query.limit, 10) || 500, 1000)
+    const limit  = Math.min(parseInt(req.query.limit, 10) || 1000, 5000)
     const offset = parseInt(req.query.offset, 10) || 0
 
     let query = supabase

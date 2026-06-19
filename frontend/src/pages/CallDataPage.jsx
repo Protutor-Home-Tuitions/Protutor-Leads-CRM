@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Select,
   SelectTrigger,
@@ -45,9 +45,18 @@ import {
   bumpNumberMsg,
 } from '../lib/api';
 
-export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMap = new Map() }) {
+export function CallDataPage({ callData, setCallData, refetchCallData, currentUser, phoneStatusMap = new Map() }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
+
+  useEffect(() => {
+    if (refetchCallData) {
+      const params = {};
+      if (statusFilter === 'open') params.status = 'open';
+      if (statusFilter === 'closed') params.status = 'closed';
+      refetchCallData(params);
+    }
+  }, [statusFilter]);
   const [cityFilter, setCityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -60,8 +69,8 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
 
   const filtered = useMemo(() => {
     let list = callData;
-    if (statusFilter === 'open') list = list.filter((n) => n.status === 'open');
-    if (statusFilter === 'closed') list = list.filter((n) => n.status === 'closed');
+    // Status filtering now done server-side
+    // if (statusFilter === 'closed') — handled server-side
     if (cityFilter !== 'all') list = list.filter((n) => n.city === cityFilter);
     if (categoryFilter !== 'all') list = list.filter((n) => n.category === categoryFilter);
     if (search) {

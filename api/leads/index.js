@@ -55,7 +55,7 @@ export default async function handler(req, res) {
   // Supports optional pagination & filtering via query params:
   //   ?status=open&city=Bangalore&limit=100&offset=0
   if (req.method === 'GET') {
-    const limit  = Math.min(parseInt(req.query.limit, 10) || 500, 1000)
+    const limit  = Math.min(parseInt(req.query.limit, 10) || 1000, 5000)
     const offset = parseInt(req.query.offset, 10) || 0
 
     let query = supabase

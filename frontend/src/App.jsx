@@ -69,7 +69,7 @@ export default function App() {
     if (!user) return;
     (async () => {
       try {
-        const [ls, cd] = await Promise.all([fetchLeads(), fetchCallData()]);
+        const [ls, cd] = await Promise.all([fetchLeads({ status: 'open' }), fetchCallData({ status: 'open' })]);
         setLeads(ls || []);
         setCallData(cd || []);
       } catch (e) {
@@ -85,6 +85,21 @@ export default function App() {
       }
     })();
   }, [user]);
+
+  // ---- Refetch with different filters ----
+  const refetchLeads = async (params = {}) => {
+    try {
+      const ls = await fetchLeads(params);
+      setLeads(ls || []);
+    } catch (e) { console.error('Failed to refetch leads:', e); }
+  };
+
+  const refetchCallData = async (params = {}) => {
+    try {
+      const cd = await fetchCallData(params);
+      setCallData(cd || []);
+    } catch (e) { console.error('Failed to refetch call data:', e); }
+  };
 
   // ---- Follow-up alert computation ----
   const computeAlerts = useCallback(
