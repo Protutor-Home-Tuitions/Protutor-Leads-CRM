@@ -85,7 +85,7 @@ export async function updateLead(id, payload) {
 
 export async function toggleLeadStar(id, starred) {
   return request(`/api/leads/${id}/star`, {
-    method: 'POST',
+    method: 'PATCH',
     body: JSON.stringify({ starred }),
   });
 }

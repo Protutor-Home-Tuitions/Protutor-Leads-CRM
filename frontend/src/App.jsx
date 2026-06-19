@@ -31,7 +31,7 @@ export default function App() {
   const [callData, setCallData] = useState([]);
 
   // Browser notifications 15 mins before follow-up
-  useFollowupNotifications(leads, callData);
+  useFollowupNotifications(leads, callData, user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-const CHECK_INTERVAL = 60 * 1000; // check every 60 seconds
-const ADVANCE_MINUTES = 15; // notify 15 mins before
+const CHECK_INTERVAL = 60 * 1000;
+const ADVANCE_MINUTES = 15;
 
 function getNotifKey(id) {
   return `notified_${id}_${new Date().toDateString()}`;
@@ -15,19 +15,21 @@ function markNotified(id) {
   try { sessionStorage.setItem(getNotifKey(id), '1'); } catch {}
 }
 
-export function useFollowupNotifications(leads, callData) {
+export function useFollowupNotifications(leads, callData, currentUser) {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    // Request permission on mount
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
     function check() {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      if (!currentUser) return;
 
       const now = new Date();
+      const userName = currentUser.name || currentUser.fname || '';
+
       const items = [
         ...(leads || []).map(l => ({ ...l, _type: 'lead', _name: l.parentName || l.mobile, _phone: l.mobile })),
         ...(callData || []).map(c => ({ ...c, _type: 'number', _name: c.name || c.phone, _phone: c.phone })),
@@ -36,6 +38,13 @@ export function useFollowupNotifications(leads, callData) {
       items.forEach(item => {
         if (!item.followupDate || item.status === 'closed') return;
         if (alreadyNotified(item.id)) return;
+
+        // Only notify if the LAST call log was made by THIS user
+        const lastLog = item.callLogs?.length ? item.callLogs[item.callLogs.length - 1] : null;
+        if (!lastLog) return;
+        
+        const loggedBy = lastLog.calledBy || lastLog.called_by_name || '';
+        if (loggedBy.toLowerCase() !== userName.toLowerCase()) return;
 
         const followup = new Date(item.followupDate);
         if (isNaN(followup.getTime())) return;
@@ -47,9 +56,8 @@ export function useFollowupNotifications(leads, callData) {
         if (diffMins <= ADVANCE_MINUTES && diffMins > -1440) {
           markNotified(item.id);
 
-          const lastLog = item.callLogs?.length ? item.callLogs[item.callLogs.length - 1] : null;
-          const lastNotes = lastLog?.notes || 'No notes';
-          const lastStatus = lastLog?.status || '—';
+          const lastNotes = lastLog.notes || 'No notes';
+          const lastStatus = lastLog.status || '—';
           const timeStr = followup.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
           const title = `Time to Call ${item._name} - ${item._phone}`;
@@ -62,11 +70,7 @@ export function useFollowupNotifications(leads, callData) {
               tag: `followup-${item.id}`,
               requireInteraction: true,
             });
-
-            notif.onclick = () => {
-              window.focus();
-              notif.close();
-            };
+            notif.onclick = () => { window.focus(); notif.close(); };
           } catch (e) {
             console.warn('Notification failed:', e);
           }
@@ -74,12 +78,8 @@ export function useFollowupNotifications(leads, callData) {
       });
     }
 
-    // Run immediately + every 60 seconds
     check();
     timerRef.current = setInterval(check, CHECK_INTERVAL);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [leads, callData]);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [leads, callData, currentUser]);
 }
