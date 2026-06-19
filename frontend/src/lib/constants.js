@@ -65,6 +65,7 @@ export const STATUSES_CLOSED = [
   'Outer Area',
   'Added as Tutor',
   'Existing Tutor',
+  'No Response',
   'Others',
 ];
 
