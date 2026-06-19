@@ -827,7 +827,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       <tr style={{ borderBottom: '3px double #e5e7eb' }}>
                         <td colSpan={5} style={{ padding: '0 20px 14px' }}>
                           <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '8px 0', marginLeft: '82px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 150px 140px 1fr 110px 120px 100px', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
                               <span style={{ padding: '0 10px', fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 <span style={{ padding: '2px 6px', background: '#ede9fe', borderRadius: '4px' }}>Form</span>
                               </span>
