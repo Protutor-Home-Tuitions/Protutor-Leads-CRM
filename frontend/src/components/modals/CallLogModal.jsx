@@ -8,23 +8,42 @@ import {
   STATUSES_NEEDS_FOLLOWUP,
 } from '../../lib/constants';
 
+function buildFollowupISO(date, hour, minute, ampm) {
+  if (!date) return '';
+  let h = parseInt(hour, 10) || 12;
+  const m = parseInt(minute, 10) || 0;
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return `${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+}
+
 export function CallLogModal({ open, onClose, item, type, onSave }) {
   const [selected, setSelected] = useState(null);
   const [statusType, setStatusType] = useState(null);
   const [notes, setNotes] = useState('');
-  const [followupDate, setFollowupDate] = useState('');
+  const [fDate, setFDate] = useState('');
+  const [fHour, setFHour] = useState('10');
+  const [fMin, setFMin] = useState('00');
+  const [fAmPm, setFAmPm] = useState('AM');
 
-  function reset() { setSelected(null); setStatusType(null); setNotes(''); setFollowupDate(''); onClose(); }
-  function save() { if (!selected) return; onSave({ status: selected, type: statusType, notes, followupDate }); reset(); }
+  function reset() { setSelected(null); setStatusType(null); setNotes(''); setFDate(''); setFHour('10'); setFMin('00'); setFAmPm('AM'); onClose(); }
+  function save() {
+    if (!selected) return;
+    const followupDate = STATUSES_NEEDS_FOLLOWUP.includes(selected) ? buildFollowupISO(fDate, fHour, fMin, fAmPm) : '';
+    onSave({ status: selected, type: statusType, notes, followupDate });
+    reset();
+  }
 
   const displayName = item ? (type === 'lead' ? item.parentName || item.mobile : item.name || item.phone) : '';
   const callNumber = item ? (item.callLogs?.length || 0) + 1 : 1;
   const needsFollowup = STATUSES_NEEDS_FOLLOWUP.includes(selected);
 
+  const inp = { height: '36px', border: '1px solid #fde68a', borderRadius: '6px', padding: '0 8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: '#fff', textAlign: 'center' };
+
   const pill = (label, oc) => (
     <button key={label} type="button" onClick={() => { setSelected(label); setStatusType(oc); }}
       style={{
-        padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+        padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
         border: selected === label ? (oc === 'open' ? '1.5px solid #3b82f6' : '1.5px solid #64748b') : '1.5px solid #d1d5db',
         background: selected === label ? (oc === 'open' ? '#eff6ff' : '#e2e8f0') : '#fff',
         color: selected === label ? (oc === 'open' ? '#1d4ed8' : '#1e293b') : '#6b7280',
@@ -42,7 +61,7 @@ export function CallLogModal({ open, onClose, item, type, onSave }) {
         </div>
         <span style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>Quick Call Log</span>
       </div>
-      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '14px' }}>
+      <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '14px' }}>
         Log your call for <strong style={{ color: '#111827' }}>{displayName}</strong>. Call #{callNumber}.
       </p>
 
@@ -55,10 +74,30 @@ export function CallLogModal({ open, onClose, item, type, onSave }) {
       </div>
 
       {needsFollowup && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#92400e' }}>📅 Next Follow-up Date & Time</label>
-          <input type="datetime-local" value={followupDate} onChange={e => setFollowupDate(e.target.value)}
-            style={{ marginTop: '4px', width: '100%', height: '36px', border: '1px solid #fde68a', borderRadius: '6px', padding: '0 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#92400e', display: 'block', marginBottom: '8px' }}>📅 Next Follow-up Date & Time</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <input type="date" value={fDate} onChange={e => setFDate(e.target.value)}
+              style={{ ...inp, width: '140px', textAlign: 'left', padding: '0 10px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <select value={fHour} onChange={e => setFHour(e.target.value)} style={{ ...inp, width: '60px' }}>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#92400e' }}>:</span>
+              <select value={fMin} onChange={e => setFMin(e.target.value)} style={{ ...inp, width: '60px' }}>
+                {['00', '15', '30', '45'].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <select value={fAmPm} onChange={e => setFAmPm(e.target.value)}
+                style={{ ...inp, width: '65px', fontWeight: 600, color: '#92400e' }}>
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
         </div>
       )}
 

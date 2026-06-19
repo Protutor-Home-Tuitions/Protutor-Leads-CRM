@@ -101,3 +101,14 @@ export function sendWhatsAppMissedCall(phone, fromName, countryCode) {
     '_blank'
   );
 }
+
+export function formatTime12hr(e) {
+  if (!e) return '';
+  const t = new Date(e);
+  if (isNaN(t.getTime())) return '';
+  let h = t.getHours();
+  const m = String(t.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + m + ' ' + ampm;
+}

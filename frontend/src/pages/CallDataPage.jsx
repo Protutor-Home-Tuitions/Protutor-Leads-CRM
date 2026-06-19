@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import {
   formatDate,
+  formatTime12hr,
   isToday,
   digitsOnly,
   sendWhatsAppMissedCall,
@@ -66,6 +67,11 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
       const q = search.toLowerCase();
       list = list.filter((n) => ((n.name || '') + (n.phone || '')).toLowerCase().includes(q));
     }
+    list = list.sort((a, b) => {
+      const dateA = new Date(a.entryDate || 0);
+      const dateB = new Date(b.entryDate || 0);
+      return dateB - dateA;
+    });
     return list;
   }, [callData, statusFilter, cityFilter, categoryFilter, search]);
 
@@ -519,7 +525,12 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
                         {last && <div style={{ marginTop: '4px' }}><span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#1e293b', color: '#fff' }}>{last.status}</span></div>}
                         <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#6b7280' }}>{followup}</td>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{item.followupDate ? (
+                        <div>
+                          <div>📅 {formatDate(item.followupDate)}</div>
+                          {formatTime12hr(item.followupDate) && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>🕐 {formatTime12hr(item.followupDate)}</div>}
+                        </div>
+                      ) : 'No follow-up'}</td>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button type="button" onClick={() => setLogFor(item.id)}

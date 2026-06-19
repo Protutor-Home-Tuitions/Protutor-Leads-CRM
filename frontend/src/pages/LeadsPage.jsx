@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import {
   formatDate,
+  formatTime12hr,
   isToday,
   telLink,
   digitsOnly,
@@ -94,6 +95,14 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
       const q = search.toLowerCase();
       list = list.filter((l) => (l.parentName + l.mobile + (l.studentName || '')).toLowerCase().includes(q));
     }
+    // Sort: starred first, then newest to oldest
+    list = list.sort((a, b) => {
+      if (a.starred && !b.starred) return -1;
+      if (!a.starred && b.starred) return 1;
+      const dateA = new Date(a.entryDate || 0);
+      const dateB = new Date(b.entryDate || 0);
+      return dateB - dateA;
+    });
     return list;
   }, [leads, statusFilter, starFilter, cityFilter, search, currentUser, isCoordinator, isSupport]);
 
@@ -794,7 +803,12 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                         <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
                       </td>
                       <td style={{ padding: '18px 16px', fontSize: '15px', color: '#6b7280', minWidth: '130px' }}>
-                        {followup ? <span>📅 {followup}</span> : 'No follow-up'}
+                        {lead.followupDate ? (
+                        <div>
+                          <div>📅 {formatDate(lead.followupDate)}</div>
+                          {formatTime12hr(lead.followupDate) && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>🕐 {formatTime12hr(lead.followupDate)}</div>}
+                        </div>
+                      ) : 'No follow-up'}
                       </td>
                       <td style={{ padding: '18px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
