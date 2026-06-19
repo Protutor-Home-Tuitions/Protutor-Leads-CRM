@@ -756,7 +756,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                   const hasFormData = lead.hourlyFee || lead.monthlyEstimate || lead.daysPerWeek || lead.hoursPerSession || lead.mapsLink || lead.expectedQuote || (lead.tutorGender && lead.tutorGender !== 'Any') || (lead.quoteAccepted !== undefined && lead.quoteAccepted !== null && lead.quoteAccepted !== '');
                   return (
                     <React.Fragment key={lead.id}>
-                    <tr style={{ borderBottom: hasFormData ? 'none' : '3px double #9ca3af' }}
+                    <tr style={{ borderBottom: 'none' }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '18px 20px', minWidth: '240px' }}>
@@ -823,11 +823,11 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                         </div>
                       </td>
                     </tr>
-                    {hasFormData && (
+                    {(
                       <tr style={{ borderBottom: '3px double #9ca3af' }}>
                         <td colSpan={5} style={{ padding: '0 20px 14px' }}>
-                          <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '8px 0', marginLeft: '82px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
+                          <div style={{ background: hasFormData ? '#faf5ff' : 'transparent', border: hasFormData ? '1px solid #e9d5ff' : '1px solid transparent', borderRadius: '8px', padding: '8px 0', marginLeft: '82px', minHeight: '28px' }}>
+                            {hasFormData && <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
                               <span style={{ padding: '0 10px', fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 <span style={{ padding: '2px 6px', background: '#ede9fe', borderRadius: '4px' }}>Form</span>
                               </span>
@@ -852,7 +852,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               <span style={{ padding: '0 8px', borderLeft: '1px solid #e9d5ff' }}>{lead.mapsLink ? (
                                 <CopyMapLink url={lead.mapsLink} />
                               ) : '—'}</span>
-                            </div>
+                            </div>}
                           </div>
                         </td>
                       </tr>
