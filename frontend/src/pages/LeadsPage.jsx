@@ -738,7 +738,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
               <thead>
                 <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                   {['CONTACT', 'DETAILS', 'STATUS', 'FOLLOW-UP', 'ACTIONS'].map(h => (
-                    <th key={h} style={{ padding: '14px 20px', fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>{h}</th>
+                    <th key={h} style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -768,7 +768,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                             <PhoneCall size={18} color="#16a34a" />
                           </a>
                           <div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>
+                            <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>
                               {lead.parentName || lead.mobile}
                               {lead.classMode && lead.classMode !== 'Any' && (
                                 <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: lead.classMode === 'Online' ? '#eff6ff' : '#f3f4f6', color: lead.classMode === 'Online' ? '#2563eb' : '#6b7280', border: `1px solid ${lead.classMode === 'Online' ? '#bfdbfe' : '#e5e7eb'}` }}>
@@ -776,30 +776,30 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>📞 {lead.mobile}</div>
-                            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Entry: {formatDate(lead.entryDate)}{lead.source ? ` / ${lead.source}` : ''}</div>
+                            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '3px' }}>📞 {lead.mobile}</div>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>Entry: {formatDate(lead.entryDate)}{lead.source ? ` / ${lead.source}` : ''}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: '18px 20px', minWidth: '200px' }}>
-                        <div style={{ fontSize: '14px', color: '#374151', fontWeight: 500 }}>📍 {[lead.city, lead.locality].filter(Boolean).join(', ') || '—'}</div>
-                        {(lead.standard || lead.subjects) && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>📚 {[lead.standard, lead.subjects].filter(Boolean).join(' - ')}</div>}
-                        {lead.studentName && <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '3px' }}>Student: {lead.studentName}</div>}
+                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 600 }}>📍 {[lead.city, lead.locality].filter(Boolean).join(', ') || '—'}</div>
+                        {(lead.standard || lead.subjects) && <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>📚 {[lead.standard, lead.subjects].filter(Boolean).join(' - ')}</div>}
+                        {lead.studentName && <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '3px' }}>Student: {lead.studentName}</div>}
                       </td>
                       <td style={{ padding: '18px 16px' }}>
-                        <span style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: lead.status === 'open' ? '#fff7ed' : '#f3f4f6', color: lead.status === 'open' ? '#ea580c' : '#6b7280', border: lead.status === 'open' ? '1px solid #fed7aa' : '1px solid #e5e7eb' }}>
+                        <span style={{ display: 'inline-flex', padding: '4px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, background: lead.status === 'open' ? '#fff7ed' : '#f3f4f6', color: lead.status === 'open' ? '#ea580c' : '#6b7280', border: lead.status === 'open' ? '1px solid #fed7aa' : '1px solid #e5e7eb' }}>
                           {lead.status === 'open' ? 'Open' : 'Closed'}
                         </span>
                         {last && <div style={{ marginTop: '6px' }}><span style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 600, background: '#1e293b', color: '#fff' }}>{last.status}</span></div>}
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
+                        <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
                       </td>
-                      <td style={{ padding: '18px 16px', fontSize: '14px', color: '#6b7280', minWidth: '130px' }}>
+                      <td style={{ padding: '18px 16px', fontSize: '15px', color: '#6b7280', minWidth: '130px' }}>
                         {followup ? <span>📅 {followup}</span> : 'No follow-up'}
                       </td>
                       <td style={{ padding: '18px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <button type="button" onClick={() => setLogFor(lead.id)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 22px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '15px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                             <PhoneCall size={14} /> Log
                           </button>
                           <button type="button" onClick={() => onWhatsApp(lead)}
@@ -826,8 +826,8 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                     {(
                       <tr style={{ borderBottom: '3px double #9ca3af' }}>
                         <td colSpan={5} style={{ padding: '0 20px 14px' }}>
-                          <div style={{ background: hasFormData ? '#faf5ff' : 'transparent', border: hasFormData ? '1px solid #e9d5ff' : '1px solid transparent', borderRadius: '8px', padding: '8px 0', marginLeft: '82px', minHeight: '28px' }}>
-                            {hasFormData && <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '12px', color: '#5b21b6' }}>
+                          <div style={{ background: hasFormData ? '#faf5ff' : 'transparent', border: hasFormData ? '1px solid #e9d5ff' : '1px solid transparent', borderRadius: '8px', padding: '8px 0', marginLeft: '78px', minHeight: '28px' }}>
+                            {hasFormData && <div style={{ display: 'grid', gridTemplateColumns: '65px 65px 130px 120px 1fr 100px 100px 90px', whiteSpace: 'nowrap', alignItems: 'center', fontSize: '13px', color: '#5b21b6' }}>
                               <span style={{ padding: '0 10px', fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 <span style={{ padding: '2px 6px', background: '#ede9fe', borderRadius: '4px' }}>Form</span>
                               </span>

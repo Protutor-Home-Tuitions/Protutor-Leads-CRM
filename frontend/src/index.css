@@ -4,11 +4,12 @@
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01'; /* Inter stylistic alternates */
 }
 
-/* Desktop/mobile layout switching for Leads and Call Data pages */
 .lp-desktop { display: block; }
 .lp-mobile  { display: none; }
 .cd-desktop { display: block; }
