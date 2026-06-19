@@ -122,8 +122,7 @@ export function ViewDetailsModal({ open, onClose, item, type, onEdit }) {
                 {item.monthlyEstimate && <Field icon={CreditCard} label="Monthly Estimate" value={item.monthlyEstimate} />}
                 {item.quoteAccepted !== undefined && item.quoteAccepted !== null && item.quoteAccepted !== '' && <Field label="Quote Accepted" value={String(item.quoteAccepted)} />}
                 {item.expectedQuote && <Field label="Parent's Quote" value={item.expectedQuote} />}
-                {item.dataQuality && <Field label="Data Quality" value={item.dataQuality} />}
-                {item.requestId && <Field label="Request ID" value={item.requestId} />}
+
               </Section>
             )}
           </>

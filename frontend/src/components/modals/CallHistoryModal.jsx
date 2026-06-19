@@ -1,6 +1,6 @@
 import { BookOpen } from 'lucide-react';
 import { Modal, ModalBtn } from '../ui/Modal';
-import { formatDateTime } from '../../lib/utils';
+import { formatDate, formatTime12hr } from '../../lib/utils';
 
 export function CallHistoryModal({ open, onClose, item, type }) {
   if (!item) return null;
@@ -27,7 +27,7 @@ export function CallHistoryModal({ open, onClose, item, type }) {
                 border: log.isOpen ? '1px solid #fed7aa' : '1px solid #e5e7eb',
               }}>{log.status}</span>
             </div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '3px' }}>📅 {formatDateTime(log.time)}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '3px' }}>📅 {formatDate(log.time)}{formatTime12hr(log.time) ? ' at ' + formatTime12hr(log.time) : ''}</div>
             <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: log.notes ? '6px' : 0 }}>👤 Called by: {log.calledBy}</div>
             {log.notes && <div style={{ fontSize: '12px', color: '#374151', background: '#f8fafc', borderRadius: '6px', padding: '6px 8px' }}>💬 {log.notes}</div>}
           </div>
