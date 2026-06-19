@@ -29,6 +29,10 @@ export function CallLogModal({ open, onClose, item, type, onSave }) {
   function reset() { setSelected(null); setStatusType(null); setNotes(''); setFDate(''); setFHour('10'); setFMin('00'); setFAmPm('AM'); onClose(); }
   function save() {
     if (!selected) return;
+    if (STATUSES_NEEDS_FOLLOWUP.includes(selected) && !fDate) {
+      alert('Please select a follow-up date');
+      return;
+    }
     const followupDate = STATUSES_NEEDS_FOLLOWUP.includes(selected) ? buildFollowupISO(fDate, fHour, fMin, fAmPm) : '';
     onSave({ status: selected, type: statusType, notes, followupDate });
     reset();

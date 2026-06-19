@@ -155,10 +155,16 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
         setLeads((cur) =>
           cur.map((l) => {
             if (l.id !== id) return l;
-            const callLog = result?.callLog || {
+            // If API returned the full updated lead, use it directly
+            if (result?.lead) {
+              return result.lead;
+            }
+            // Fallback: construct locally
+            const callLog = {
               n: (l.callLogs?.length || 0) + 1,
               status,
               notes,
+              followupDate: followupDate || '',
               time: new Date().toISOString().replace('T', ' ').slice(0, 16),
               calledBy: currentUser?.name || currentUser?.fname || 'User',
               isOpen: type === 'open',
@@ -166,7 +172,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
             return {
               ...l,
               callLogs: [...(l.callLogs || []), callLog],
-              status: result?.leadStatus || (type === 'closed' ? 'closed' : 'open'),
+              status: type === 'closed' ? 'closed' : 'open',
               followupDate: followupDate || l.followupDate,
             };
           })

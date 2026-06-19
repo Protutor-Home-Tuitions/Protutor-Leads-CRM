@@ -46,7 +46,6 @@ export function LoginPage({ onLogin }) {
               <h1 className="text-2xl font-bold text-slate-900">
                 Pro<span className="text-green-500">Tutor</span>
               </h1>
-              <p className="text-sm text-slate-400 mt-1">CRM — leads.protutor.in</p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">
