@@ -46,6 +46,7 @@ export default function App() {
   // ---- 401 handler: backend lost auth → clear token and bounce to login ----
   useEffect(() => {
     function onUnauth() {
+      try { localStorage.removeItem('crm_user'); } catch {}
       setUser(null);
       setLeads([]);
       setCallData([]);
@@ -55,12 +56,15 @@ export default function App() {
     return () => window.removeEventListener('crm:unauthorized', onUnauth);
   }, []);
 
-  // ---- Re-hydrate: if we have a token but no user, the page reloaded; force re-login ----
-  // (the user object isn't stored separately — only the token).
+  // ---- Re-hydrate user on refresh from localStorage ----
   useEffect(() => {
     if (getToken() && !user) {
-      // We can't reconstruct the user without a /me endpoint, so we leave them at the
-      // login screen. The token is still there if they re-authenticate.
+      try {
+        const storedUser = localStorage.getItem('crm_user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch {}
     }
   }, [user]);
 
@@ -181,7 +185,11 @@ export default function App() {
 
   // ---- Render: unauth → login ----
   if (!user) {
-    return <LoginPage onLogin={(u) => { setSignedOutMsg(''); setUser(u); }} signedOutMsg={signedOutMsg} />;
+    return <LoginPage onLogin={(u) => {
+      setSignedOutMsg('');
+      try { localStorage.setItem('crm_user', JSON.stringify(u)); } catch {}
+      setUser(u);
+    }} signedOutMsg={signedOutMsg} />;
   }
 
   const alertCount = alerts.length;
@@ -203,6 +211,7 @@ export default function App() {
           currentUser={user}
           onLogout={() => {
             clearToken();
+            try { localStorage.removeItem('crm_user'); } catch {}
             setUser(null);
             greetingRef.current = null;
           }}

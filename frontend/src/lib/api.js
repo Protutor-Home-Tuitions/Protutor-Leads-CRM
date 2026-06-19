@@ -37,6 +37,7 @@ export function checkMonthlySignout() {
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem('crm_login_month');
+  localStorage.removeItem('crm_user');
 }
 
 // Called on 401 — App.jsx subscribes via window event so it can flip back to the login screen.

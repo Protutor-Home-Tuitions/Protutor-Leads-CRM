@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       .from('leads')
       .select('*, call_logs(*)')
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+      .limit(limit)
 
     if (req.query.status) query = query.eq('status', req.query.status)
     if (req.query.city)   query = query.eq('city', req.query.city)
