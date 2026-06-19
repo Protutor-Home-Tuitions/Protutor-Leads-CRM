@@ -154,6 +154,10 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   );
 
   function exportCsv() {
+    if (currentUser?.role !== 'manager') {
+      alert('Export is only available for managers.');
+      return;
+    }
     const maxCalls = Math.max(0, ...filtered.map((n) => (n.callLogs?.length || 0)));
     const callCols = [];
     for (let n = 1; n <= maxCalls; n++) {
@@ -483,69 +487,69 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
               <thead>
                 <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                   {['CONTACT', 'DETAILS', 'STATUS', 'FOLLOW-UP', 'ACTIONS'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>{h}</th>
+                    <th key={h} style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>No numbers found.</td></tr>
+                  <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontSize: '15px' }}>No numbers found.</td></tr>
                 )}
                 {filtered.map((item) => {
                   const last = item.callLogs?.length ? item.callLogs[item.callLogs.length - 1] : null;
                   const callCount = item.callLogs?.length || 0;
                   const followup = item.followupDate ? formatDate(item.followupDate) : 'No follow-up';
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f5f5f5' }}
+                    <tr key={item.id} style={{ borderBottom: '3px double #9ca3af' }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <a href={telLink(item.phone, item.countryCode)} style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                      <td style={{ padding: '18px 20px', minWidth: '240px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <a href={telLink(item.phone, item.countryCode)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
                             <PhoneCall size={15} color="#16a34a" />
                           </a>
                           <div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{item.name || item.phone}</div>
-                            <div style={{ fontSize: '12px', color: '#9ca3af' }}>📞 {item.phone}</div>
-                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>Entry: {formatDate(item.entryDate)}</div>
+                            <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>{item.name || item.phone}</div>
+                            <div style={{ fontSize: '14px', color: '#6b7280' }}>📞 {item.phone}</div>
+                            <div style={{ fontSize: '13px', color: '#9ca3af' }}>Entry: {formatDate(item.entryDate)}</div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontSize: '13px', color: '#374151' }}>📍 {item.city || '—'}</div>
-                        {item.category && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>{item.category}</span></div>}
-                        {item.source && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Source: {item.source}</div>}
+                      <td style={{ padding: '18px 20px', minWidth: '200px' }}>
+                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 500 }}>📍 {item.city || '—'}</div>
+                        {item.category && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '5px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>{item.category}</span></div>}
+                        {item.source && <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '3px' }}>Source: {item.source}</div>}
                       </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 600,
+                      <td style={{ padding: '18px 16px' }}>
+                        <span style={{ display: 'inline-flex', padding: '4px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 600,
                           background: item.status === 'open' ? '#fff7ed' : '#f3f4f6', color: item.status === 'open' ? '#ea580c' : '#6b7280',
                           border: item.status === 'open' ? '1px solid #fed7aa' : '1px solid #e5e7eb' }}>
                           {item.status === 'open' ? 'Open' : 'Closed'}
                         </span>
-                        {last && <div style={{ marginTop: '4px' }}><span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#1e293b', color: '#fff' }}>{last.status}</span></div>}
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
+                        {last && <div style={{ marginTop: '4px' }}><span style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 600, background: '#1e293b', color: '#fff' }}>{last.status}</span></div>}
+                        <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>{callCount} call{callCount !== 1 ? 's' : ''}</div>
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{item.followupDate ? (
+                      <td style={{ padding: '18px 16px', fontSize: '15px', color: '#6b7280', minWidth: '130px' }}>{item.followupDate ? (
                         <div>
                           <div>📅 {formatDate(item.followupDate)}</div>
                           {formatTime12hr(item.followupDate) && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>🕐 {formatTime12hr(item.followupDate)}</div>}
                         </div>
                       ) : 'No follow-up'}</td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <td style={{ padding: '18px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <button type="button" onClick={() => setLogFor(item.id)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 22px', borderRadius: '8px', background: '#16a34a', color: '#fff', fontSize: '15px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                             <PhoneCall size={13} /> Log
                           </button>
                           <button type="button" onClick={() => { /* whatsapp */ }}
-                            style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+                            style={{ width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
                             <MessageCircle size={15} color="#6b7280" />
                             {(item.msgCount || 0) > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-4px', fontSize: '9px', background: '#6b7280', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.msgCount}</span>}
                           </button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <EllipsisVertical size={15} color="#6b7280" />
+                              <button type="button" style={{ width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <EllipsisVertical size={16} color="#6b7280" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -590,7 +594,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
         </div>
         <div style={{ padding: '2px 12px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {filtered.length === 0 && (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            <div style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontSize: '15px' }}>
               No numbers found.
             </div>
           )}

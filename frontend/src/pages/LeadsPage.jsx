@@ -76,7 +76,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   const [editing, setEditing] = useState(null);
   const [logFor, setLogFor] = useState(null);
   const [viewFor, setViewFor] = useState(null);
-  const [historyFor, setHistoryFor] = useState(null);
+  const [historyItem, setHistoryItem] = useState(null);
 
   const isManager = currentUser?.role === 'manager';
   const isCoordinator = currentUser?.role === 'coordinator';
@@ -108,7 +108,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
 
   const logForLead = logFor ? leads.find((l) => l.id === logFor) : null;
   const viewForLead = viewFor ? leads.find((l) => l.id === viewFor) : null;
-  const historyForLead = historyFor ? leads.find((l) => l.id === historyFor) : null;
+  
 
   const onToggleStar = useCallback(
     async (id) => {
@@ -227,6 +227,10 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   );
 
   function exportCsv() {
+    if (currentUser?.role !== 'manager') {
+      alert('Export is only available for managers.');
+      return;
+    }
     const maxCalls = Math.max(0, ...filtered.map((l) => (l.callLogs?.length || 0)));
     const callCols = [];
     for (let n = 1; n <= maxCalls; n++) {
@@ -327,7 +331,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
           </svg>
           View Details
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setHistoryFor(lead.id)}>
+        <DropdownMenuItem onClick={() => setHistoryItem(lead)}>
           <BookOpen size={13} />
           Call History
         </DropdownMenuItem>
@@ -830,7 +834,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => setLogFor(lead.id)}>📞 Log Call</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setViewFor(lead.id)}>👁 View Details</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setHistoryFor(lead.id)}>📋 Call History</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setHistoryItem(lead)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -970,9 +974,9 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
         onEdit={(lead) => { setEditing(lead); setFormOpen(true); }}
       />
       <CallHistoryModal
-        open={!!historyFor}
-        onClose={() => setHistoryFor(null)}
-        item={historyForLead}
+        open={!!historyItem}
+        onClose={() => setHistoryItem(null)}
+        item={historyItem}
         type="lead"
       />
     </div>
