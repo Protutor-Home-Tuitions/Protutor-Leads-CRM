@@ -22,6 +22,12 @@ export default async function handler(req, res) {
 
     if (req.query.status) query = query.eq('status', req.query.status)
 
+    // Full-text search by phone or name (searches all statuses)
+    if (req.query.search) {
+      const s = `%${req.query.search}%`
+      query = query.or(`phone.ilike.${s},name.ilike.${s}`)
+    }
+
     const { data, error } = await query
     if (error) return res.status(500).json({ error: error.message })
     return res.json({ numbers: (data || []).map(mapCallData) })

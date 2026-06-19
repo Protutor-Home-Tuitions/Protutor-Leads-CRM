@@ -59,19 +59,33 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
 
   const isManager = currentUser?.role === 'manager';
 
-  // ---- Refetch call data from server when statusFilter changes ----
-  // Skip the very first render so we don't double-fetch on mount
-  // (App.jsx already fetched with status=open on login).
+  // ---- Refetch from server when statusFilter or search changes ----
+  // Skip the very first render (App.jsx already fetched with status=open).
+  // When search has 3+ chars → server-side search across ALL records.
+  // Otherwise → fetch by status filter as before.
   const isInitialMount = useRef(true);
+  const debounceRef = useRef(null);
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     if (typeof reloadCallData !== 'function') return;
-    const params = statusFilter === 'all' ? {} : { status: statusFilter };
-    reloadCallData(params);
-  }, [statusFilter, reloadCallData]);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (search.length >= 3) {
+      // Server-side search all call data (debounced 400ms)
+      debounceRef.current = setTimeout(() => {
+        reloadCallData({ search });
+      }, 400);
+    } else {
+      // No search or partial — fetch by status
+      const params = statusFilter === 'all' ? {} : { status: statusFilter };
+      reloadCallData(params);
+    }
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search, statusFilter, reloadCallData]);
 
   const filtered = useMemo(() => {
     let list = callData;

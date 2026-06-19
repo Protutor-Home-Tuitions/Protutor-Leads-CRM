@@ -85,19 +85,33 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   const isCoordinator = currentUser?.role === 'coordinator';
   const isSupport = currentUser?.role === 'support';
 
-  // ---- Refetch leads from server when statusFilter changes ----
-  // Skip the very first render so we don't double-fetch on mount
-  // (App.jsx already fetched with status=open on login).
+  // ---- Refetch from server when statusFilter or search changes ----
+  // Skip the very first render (App.jsx already fetched with status=open).
+  // When search has 3+ chars → server-side search across ALL records.
+  // Otherwise → fetch by status filter as before.
   const isInitialMount = useRef(true);
+  const debounceRef = useRef(null);
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     if (typeof reloadLeads !== 'function') return;
-    const params = statusFilter === 'all' ? {} : { status: statusFilter };
-    reloadLeads(params);
-  }, [statusFilter, reloadLeads]);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (search.length >= 3) {
+      // Server-side search all leads (debounced 400ms)
+      debounceRef.current = setTimeout(() => {
+        reloadLeads({ search });
+      }, 400);
+    } else {
+      // No search or partial — fetch by status
+      const params = statusFilter === 'all' ? {} : { status: statusFilter };
+      reloadLeads(params);
+    }
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search, statusFilter, reloadLeads]);
 
   const filtered = useMemo(() => {
     let list = leads;

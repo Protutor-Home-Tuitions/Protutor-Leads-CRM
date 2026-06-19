@@ -67,6 +67,12 @@ export default async function handler(req, res) {
     if (req.query.status) query = query.eq('status', req.query.status)
     if (req.query.city)   query = query.eq('city', req.query.city)
 
+    // Full-text search by phone or parent name (searches all statuses)
+    if (req.query.search) {
+      const s = `%${req.query.search}%`
+      query = query.or(`mobile.ilike.${s},parent_name.ilike.${s}`)
+    }
+
     query = applyLeadFilter(query, user)
 
     const { data, error } = await query
