@@ -68,13 +68,18 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      try {
-        const [ls, cd] = await Promise.all([fetchLeads(), fetchCallData()]);
-        setLeads(ls || []);
-        setCallData(cd || []);
-      } catch (e) {
-        console.error('Failed to load leads/call-data:', e);
-      }
+        // Fetch leads (small, fast)
+        try {
+          const ls = await fetchLeads();
+          setLeads(ls || []);
+        } catch (e) { console.error('Failed to load leads:', e); }
+
+        // Fetch call data separately (large dataset)
+        try {
+          const cd = await fetchCallData();
+          setCallData(cd || []);
+        } catch (e) { console.error('Failed to load call data:', e); }
+
       if (user.role === 'manager') {
         try {
           const us = await fetchUsers();

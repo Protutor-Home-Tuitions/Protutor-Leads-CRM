@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     let query = supabase
       .from('call_data')
-      .select('*, call_logs(*)')
+      .select('*, call_logs(id, n, status, notes, called_by_name, is_open, logged_at, followup_date)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         added_by:      user.id,
         added_by_name: user.fname,
       })
-      .select('*, call_logs(*)')
+      .select('*, call_logs(id, n, status, notes, called_by_name, is_open, logged_at, followup_date)')
       .single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json({ number: mapCallData(data) })
