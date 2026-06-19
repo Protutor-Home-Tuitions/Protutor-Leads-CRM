@@ -13,6 +13,7 @@ import {
   getToken,
   clearToken,
 } from './lib/api';
+import { useFollowupNotifications } from './lib/useFollowupNotifications';
 import { greetingFor, formatFollowupTime } from './lib/utils';
 
 const PAGE_TITLES = {
@@ -28,6 +29,9 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [leads, setLeads] = useState([]);
   const [callData, setCallData] = useState([]);
+
+  // Browser notifications 15 mins before follow-up
+  useFollowupNotifications(leads, callData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);
