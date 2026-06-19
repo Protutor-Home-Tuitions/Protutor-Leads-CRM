@@ -72,8 +72,10 @@ export function LeadsPage({ leads, setLeads, refetchLeads, currentUser, phoneSta
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
-  // Refetch from server when status filter changes
+  // Refetch from server when status filter changes (skip first render - App already fetched)
+  const leadsFirstRender = useRef(true);
   useEffect(() => {
+    if (leadsFirstRender.current) { leadsFirstRender.current = false; return; }
     if (refetchLeads) {
       const params = {};
       if (statusFilter === 'open') params.status = 'open';

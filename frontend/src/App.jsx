@@ -69,7 +69,10 @@ export default function App() {
     if (!user) return;
     (async () => {
       try {
-        const [ls, cd] = await Promise.all([fetchLeads({ status: 'open' }), fetchCallData({ status: 'open' })]);
+        const [ls, cd] = await Promise.all([
+            fetchLeads({ status: 'open' }).catch(() => []),
+            fetchCallData({ status: 'open' }).catch(() => []),
+          ]);
         setLeads(ls || []);
         setCallData(cd || []);
       } catch (e) {
@@ -91,14 +94,14 @@ export default function App() {
     try {
       const ls = await fetchLeads(params);
       setLeads(ls || []);
-    } catch (e) { console.error('Failed to refetch leads:', e); }
+    } catch (e) { setLeads([]); }
   };
 
   const refetchCallData = async (params = {}) => {
     try {
       const cd = await fetchCallData(params);
       setCallData(cd || []);
-    } catch (e) { console.error('Failed to refetch call data:', e); }
+    } catch (e) { setCallData([]); }
   };
 
   // ---- Follow-up alert computation ----
