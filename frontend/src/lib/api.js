@@ -93,7 +93,7 @@ export async function toggleLeadStar(id, starred) {
 export async function addLeadCallLog(id, { status, type, notes, followupDate }) {
   return request(`/api/leads/${id}/call-log`, {
     method: 'POST',
-    body: JSON.stringify({ status, type, notes, followupDate }),
+    body: JSON.stringify({ status, isOpen: type === 'open', notes, followupDate }),
   });
 }
 
@@ -129,7 +129,7 @@ export async function updateNumber(id, payload) {
 export async function addNumberCallLog(id, { status, type, notes, followupDate }) {
   return request(`/api/call-data/${id}/call-log`, {
     method: 'POST',
-    body: JSON.stringify({ status, type, notes, followupDate }),
+    body: JSON.stringify({ status, isOpen: type === 'open', notes, followupDate }),
   });
 }
 
