@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { login } from '../lib/api';
 
 export function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('admin@protutor.in');
-  const [password, setPassword] = useState('password');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,11 +14,11 @@ export function LoginPage({ onLogin }) {
     setErr('');
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const data = await login(username, password);
       if (data?.user) onLogin(data.user);
-      else setErr('Invalid response from server');
     } catch (e) {
-      setErr(e.message || 'Login failed');
+      // Only show error if there IS one (empty = user not found, silently fail)
+      if (e.message) setErr(e.message);
     } finally {
       setLoading(false);
     }
@@ -51,15 +51,16 @@ export function LoginPage({ onLogin }) {
 
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Email</label>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Email or Mobile Number</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   <input
-                    type="email"
-                    placeholder="admin@protutor.in"
+                    type="text"
+                    placeholder="Email or mobile number"
                     className="flex h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 py-1 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -74,6 +75,7 @@ export function LoginPage({ onLogin }) {
                     className="flex h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-9 py-1 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -104,10 +106,6 @@ export function LoginPage({ onLogin }) {
                 {loading ? 'Signing in...' : 'Sign In to CRM'}
               </button>
             </form>
-
-            <p className="text-center text-xs text-slate-400 mt-5">
-              Demo: admin@protutor.in / password
-            </p>
           </div>
         </div>
       </div>

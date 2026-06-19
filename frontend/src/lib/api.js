@@ -48,13 +48,27 @@ async function request(path, options = {}) {
 }
 
 // ---- Auth ----
-export async function login(email, password) {
-  const data = await request('/api/auth/login', {
+export async function login(username, password) {
+  const res = await fetch('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
   });
-  if (data?.token) setToken(data.token);
-  return data; // { token, user }
+
+  let body = null;
+  try { body = await res.json(); } catch {}
+
+  if (!res.ok) {
+    // If error is empty string = user not found → throw with empty message (silent)
+    // If error has text = wrong password → throw with that message
+    const msg = body?.error || '';
+    throw new Error(msg);
+  }
+
+  if (body?.token) {
+    sessionStorage.setItem('crm_token', body.token);
+  }
+  return body;
 }
 
 export function logout() {
