@@ -8,11 +8,11 @@ function getNotifKey(id) {
 }
 
 function alreadyNotified(id) {
-  try { return sessionStorage.getItem(getNotifKey(id)) === '1'; } catch { return false; }
+  try { return localStorage.getItem(getNotifKey(id)) === '1'; } catch { return false; }
 }
 
 function markNotified(id) {
-  try { sessionStorage.setItem(getNotifKey(id), '1'); } catch {}
+  try { localStorage.setItem(getNotifKey(id), '1'); } catch {}
 }
 
 export function useFollowupNotifications(leads, callData, currentUser) {

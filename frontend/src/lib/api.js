@@ -1,16 +1,42 @@
-// All API calls go through this module. Token lives in sessionStorage as `crm_token`.
+// All API calls go through this module. Token lives in localStorage for persistence across refresh/close.
 // Backend is at the same domain; relative URLs only.
 
 const TOKEN_KEY = 'crm_token';
 
 export function getToken() {
-  return sessionStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
 }
 export function setToken(token) {
-  sessionStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(TOKEN_KEY, token);
 }
+
+// Check if JWT token is expired (decode without verification - just check exp)
+export function isTokenExpired() {
+  const token = getToken();
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiry = payload.exp * 1000; // JWT exp is in seconds
+    return Date.now() > expiry;
+  } catch {
+    return true; // malformed token = expired
+  }
+}
+
+export function checkMonthlySignout() {
+  const loginMonth = localStorage.getItem('crm_login_month');
+  const today = new Date();
+  // On the 1st of any month, if they logged in during a previous month, force signout
+  if (today.getDate() === 1 && loginMonth !== null && parseInt(loginMonth) !== today.getMonth()) {
+    clearToken();
+    return true; // was signed out
+  }
+  return false;
+}
+
 export function clearToken() {
-  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('crm_login_month');
 }
 
 // Called on 401 — App.jsx subscribes via window event so it can flip back to the login screen.
@@ -66,7 +92,8 @@ export async function login(username, password) {
   }
 
   if (body?.token) {
-    sessionStorage.setItem('crm_token', body.token);
+    localStorage.setItem('crm_token', body.token);
+    localStorage.setItem('crm_login_month', new Date().getMonth().toString());
   }
   return body;
 }

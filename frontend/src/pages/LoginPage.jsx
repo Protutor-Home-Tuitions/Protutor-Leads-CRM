@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { login } from '../lib/api';
 
-export function LoginPage({ onLogin }) {
+export function LoginPage({ onLogin, signedOutMsg }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -48,7 +48,12 @@ export function LoginPage({ onLogin }) {
               </h1>
             </div>
 
-            <form onSubmit={submit} className="space-y-4">
+            {signedOutMsg && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg px-3 py-2.5 mb-2">
+                  {signedOutMsg}
+                </div>
+              )}
+              <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Email or Mobile Number</label>
                 <div className="relative">

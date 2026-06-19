@@ -12,6 +12,8 @@ import {
   fetchUsers,
   getToken,
   clearToken,
+  checkMonthlySignout,
+  isTokenExpired,
 } from './lib/api';
 import { useFollowupNotifications } from './lib/useFollowupNotifications';
 import { greetingFor, formatFollowupTime } from './lib/utils';
@@ -25,6 +27,7 @@ const PAGE_TITLES = {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [signedOutMsg, setSignedOutMsg] = useState('');
   const [page, setPage] = useState('leads');
   const [users, setUsers] = useState([]);
   const [leads, setLeads] = useState([]);
@@ -173,7 +176,7 @@ export default function App() {
 
   // ---- Render: unauth → login ----
   if (!user) {
-    return <LoginPage onLogin={setUser} />;
+    return <LoginPage onLogin={(u) => { setSignedOutMsg(''); setUser(u); }} signedOutMsg={signedOutMsg} />;
   }
 
   const alertCount = alerts.length;

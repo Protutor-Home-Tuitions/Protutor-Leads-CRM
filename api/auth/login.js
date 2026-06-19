@@ -10,35 +10,45 @@ export default async function handler(req, res) {
 
   const body = await parseBody(req)
   const { username, password } = body
-
-  // Support legacy 'email' field for backward compatibility
   const loginId = (username || body.email || '').toLowerCase().trim()
 
   if (!loginId || !password) {
     return res.status(400).json({ error: 'Username and password are required' })
   }
 
-  // Step 1: Check if user exists by email OR mobile (no password check yet)
-  const { data: found, error: lookupErr } = await supabase
+  // Step 1: Find user by email first, then mobile (safe parameterized queries)
+  let found = null
+  const { data: byEmail } = await supabase
     .from('users')
     .select('id, email, mobile')
-    .or(`email.eq.${loginId},mobile.eq.${loginId}`)
+    .eq('email', loginId)
     .limit(1)
 
-  if (lookupErr || !found || found.length === 0) {
-    // User not found — return 401 with EMPTY error (no hint to attacker)
+  if (byEmail && byEmail.length > 0) {
+    found = byEmail[0]
+  } else {
+    const { data: byMobile } = await supabase
+      .from('users')
+      .select('id, email, mobile')
+      .eq('mobile', loginId)
+      .limit(1)
+    if (byMobile && byMobile.length > 0) {
+      found = byMobile[0]
+    }
+  }
+
+  // User not found — return 401 with EMPTY error (no hint to attacker)
+  if (!found) {
     return res.status(401).json({ error: '' })
   }
 
-  // Step 2: Verify password using the user's email (RPC expects email)
-  const userEmail = found[0].email
+  // Step 2: Verify password using the user's email
   const { data, error } = await supabase.rpc('verify_user_password', {
-    p_email: userEmail,
+    p_email: found.email,
     p_password: password,
   })
 
   if (error || !data || data.length === 0) {
-    // User exists but password is wrong
     return res.status(401).json({ error: 'Incorrect password' })
   }
 

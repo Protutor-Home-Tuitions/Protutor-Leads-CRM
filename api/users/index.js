@@ -33,6 +33,9 @@ export default async function handler(req, res) {
     if (!b.email || !b.password || !b.fname) {
       return res.status(400).json({ error: 'fname, email and password are required' })
     }
+    if (b.password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' })
+    }
 
     // Hash password using Supabase RPC (pgcrypto bcrypt).
     const { data: hash, error: hashErr } = await supabase
@@ -87,7 +90,10 @@ export default async function handler(req, res) {
     // Strip undefined so we only update fields that were actually passed.
     Object.keys(update).forEach(k => update[k] === undefined && delete update[k])
 
-    // Optional password update.
+    // Optional password update — enforce minimum length.
+    if (b.password && b.password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' })
+    }
     if (b.password) {
       const { data: hash, error: hashErr } = await supabase
         .rpc('hash_password', { p_password: b.password })
