@@ -150,8 +150,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   const onDeleteLead = useCallback(
     async (lead) => {
       const name = lead.parentName || lead.mobile;
-      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-      if (!confirm(`FINAL CONFIRMATION: Deleting "${name}" will remove all call logs and data permanently. Proceed?`)) return;
+      if (!confirm(`Delete "${name}"? This will permanently remove the lead and all call logs. This cannot be undone.`)) return;
       try {
         await deleteLead(lead.id);
         setLeads((cur) => cur.filter((l) => l.id !== lead.id));

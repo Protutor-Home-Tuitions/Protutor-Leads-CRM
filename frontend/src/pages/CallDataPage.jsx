@@ -83,8 +83,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   const onDeleteNumber = useCallback(
     async (item) => {
       const name = item.name || item.phone;
-      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-      if (!confirm(`FINAL CONFIRMATION: Deleting "${name}" will remove all call logs and data permanently. Proceed?`)) return;
+      if (!confirm(`Delete "${name}"? This will permanently remove the number and all call logs. This cannot be undone.`)) return;
       try {
         await deleteNumber(item.id);
         setCallData((cur) => cur.filter((n) => n.id !== item.id));
@@ -260,8 +259,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
               className="text-red-600 focus:bg-red-50 focus:text-red-600"
               onClick={() => {
                 if (!isManager) { alert('Only managers can delete.'); return; }
-                if (!window.confirm(`Are you sure you want to delete "${item.name || item.phone}"?`)) return;
-                if (window.confirm(`FINAL CONFIRMATION: Delete permanently?`)) {
+                if (window.confirm(`Delete "${item.name || item.phone}"? This will permanently remove the number and all call logs. This cannot be undone.`)) {
                   setCallData((cur) => cur.filter((x) => x.id !== item.id));
                 }
               }}
