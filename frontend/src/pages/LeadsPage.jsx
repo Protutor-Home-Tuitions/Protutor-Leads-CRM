@@ -834,12 +834,12 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               <span style={{ padding: '0 8px', borderLeft: '1px solid #e9d5ff' }}>{lead.tutorGender && lead.tutorGender !== 'Any' ? lead.tutorGender : '—'}</span>
                               <span style={{ padding: '0 8px', borderLeft: '1px solid #e9d5ff' }}>{lead.daysPerWeek || lead.hoursPerSession ? `${lead.daysPerWeek || '—'} / ${lead.hoursPerSession || '—'}` : '—'}</span>
                               <span style={{ padding: '0 8px', borderLeft: '1px solid #e9d5ff' }}>{lead.hourlyFee ? (
-                                <span style={ highlightHourly ? { background: '#fef9c3', border: '1.5px solid #eab308', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, color: '#854d0e' } : {}}>
+                                <span style={ (lead.hourlyFee && !(lead.monthlyEstimate && String(lead.monthlyEstimate).toLowerCase().includes('15%'))) ? { background: '#fef9c3', border: '1.5px solid #eab308', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, color: '#854d0e' } : {}}>
                                   {String(lead.hourlyFee).includes('/') ? lead.hourlyFee : `${lead.hourlyFee}/hr`}
                                 </span>
                               ) : '—'}</span>
                               <span style={{ padding: '0 8px', borderLeft: '1px solid #e9d5ff', fontWeight: 600 }}>{lead.monthlyEstimate ? (
-                                <span style={ highlightMonthly ? { background: '#d1fae5', border: '1.5px solid #16a34a', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, color: '#166534' } : {}}>
+                                <span style={ (lead.monthlyEstimate && String(lead.monthlyEstimate).toLowerCase().includes('15%')) ? { background: '#d1fae5', border: '1.5px solid #16a34a', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, color: '#166534' } : {}}>
                                   {String(lead.monthlyEstimate).includes('/') ? lead.monthlyEstimate : `${lead.monthlyEstimate}/mo`}
                                 </span>
                               ) : '—'}</span>
