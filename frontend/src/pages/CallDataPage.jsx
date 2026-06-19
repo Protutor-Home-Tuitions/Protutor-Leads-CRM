@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Select,
   SelectTrigger,
@@ -45,7 +45,7 @@ import {
   bumpNumberMsg,
 } from '../lib/api';
 
-export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMap = new Map() }) {
+export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMap = new Map(), reloadCallData }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
@@ -59,10 +59,23 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
 
   const isManager = currentUser?.role === 'manager';
 
+  // ---- Refetch call data from server when statusFilter changes ----
+  // Skip the very first render so we don't double-fetch on mount
+  // (App.jsx already fetched with status=open on login).
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (typeof reloadCallData !== 'function') return;
+    const params = statusFilter === 'all' ? {} : { status: statusFilter };
+    reloadCallData(params);
+  }, [statusFilter, reloadCallData]);
+
   const filtered = useMemo(() => {
     let list = callData;
-    if (statusFilter === 'open') list = list.filter((n) => n.status === 'open');
-    if (statusFilter === 'closed') list = list.filter((n) => n.status === 'closed');
+    // Status filter is now applied server-side (see useEffect above)
     if (cityFilter !== 'all') list = list.filter((n) => n.city === cityFilter);
     if (categoryFilter !== 'all') list = list.filter((n) => n.category === categoryFilter);
     if (search) {
@@ -75,7 +88,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
       return dateB - dateA;
     });
     return list;
-  }, [callData, statusFilter, cityFilter, categoryFilter, search]);
+  }, [callData, cityFilter, categoryFilter, search]);
 
   const logForItem = logFor ? callData.find((n) => n.id === logFor) : null;
   const viewForItem = viewFor ? callData.find((n) => n.id === viewFor) : null;

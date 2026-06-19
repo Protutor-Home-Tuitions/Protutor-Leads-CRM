@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Select,
   SelectTrigger,
@@ -68,7 +68,7 @@ function CopyMapLink({ url }) {
   );
 }
 
-export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new Map() }) {
+export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new Map(), reloadLeads }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
@@ -85,12 +85,25 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   const isCoordinator = currentUser?.role === 'coordinator';
   const isSupport = currentUser?.role === 'support';
 
+  // ---- Refetch leads from server when statusFilter changes ----
+  // Skip the very first render so we don't double-fetch on mount
+  // (App.jsx already fetched with status=open on login).
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (typeof reloadLeads !== 'function') return;
+    const params = statusFilter === 'all' ? {} : { status: statusFilter };
+    reloadLeads(params);
+  }, [statusFilter, reloadLeads]);
+
   const filtered = useMemo(() => {
     let list = leads;
     if (isCoordinator) list = list.filter((l) => currentUser.cities.includes(l.city));
     if (isSupport) list = list.filter((l) => l.movedToSupport && currentUser.cities.includes(l.city));
-    if (statusFilter === 'open') list = list.filter((l) => l.status === 'open');
-    if (statusFilter === 'closed') list = list.filter((l) => l.status === 'closed');
+    // Status filter is now applied server-side (see useEffect above)
     if (starFilter === 'starred') list = list.filter((l) => l.starred);
     if (starFilter === 'notstarred') list = list.filter((l) => !l.starred);
     if (cityFilter !== 'all') list = list.filter((l) => l.city === cityFilter);
@@ -107,7 +120,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
       return dateB - dateA;
     });
     return list;
-  }, [leads, statusFilter, starFilter, cityFilter, search, currentUser, isCoordinator, isSupport]);
+  }, [leads, starFilter, cityFilter, search, currentUser, isCoordinator, isSupport]);
 
   const logForLead = logFor ? leads.find((l) => l.id === logFor) : null;
   const viewForLead = viewFor ? leads.find((l) => l.id === viewFor) : null;

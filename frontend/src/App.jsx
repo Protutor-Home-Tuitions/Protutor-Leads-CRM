@@ -68,21 +68,33 @@ export default function App() {
     }
   }, [user]);
 
+  // ---- Reload functions exposed to pages so they can refetch with new filters ----
+  // Default to status=open so initial load and reloads with no args stay small.
+  const reloadLeads = useCallback(async (params = { status: 'open' }) => {
+    try {
+      const ls = await fetchLeads(params);
+      setLeads(ls || []);
+    } catch (e) {
+      console.error('Failed to load leads:', e);
+    }
+  }, []);
+
+  const reloadCallData = useCallback(async (params = { status: 'open' }) => {
+    try {
+      const cd = await fetchCallData(params);
+      setCallData(cd || []);
+    } catch (e) {
+      console.error('Failed to load call data:', e);
+    }
+  }, []);
+
   // ---- Load all data after login ----
   useEffect(() => {
     if (!user) return;
     (async () => {
-        // Fetch leads (small, fast)
-        try {
-          const ls = await fetchLeads();
-          setLeads(ls || []);
-        } catch (e) { console.error('Failed to load leads:', e); }
-
-        // Fetch call data separately (large dataset)
-        try {
-          const cd = await fetchCallData();
-          setCallData(cd || []);
-        } catch (e) { console.error('Failed to load call data:', e); }
+      // Initial fetch: open leads + open call data only (server-side filtered)
+      await reloadLeads({ status: 'open' });
+      await reloadCallData({ status: 'open' });
 
       if (user.role === 'manager') {
         try {
@@ -93,7 +105,7 @@ export default function App() {
         }
       }
     })();
-  }, [user]);
+  }, [user, reloadLeads, reloadCallData]);
 
   // ---- Follow-up alert computation ----
   const computeAlerts = useCallback(
@@ -486,6 +498,7 @@ export default function App() {
               setLeads={setLeads}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
+              reloadLeads={reloadLeads}
             />
           )}
           {page === 'calldata' && (
@@ -494,6 +507,7 @@ export default function App() {
               setCallData={setCallData}
               currentUser={user}
               phoneStatusMap={phoneStatusMap}
+              reloadCallData={reloadCallData}
             />
           )}
           {page === 'users' && user.role === 'manager' && (
