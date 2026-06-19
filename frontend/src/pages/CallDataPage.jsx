@@ -49,14 +49,6 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
 
-  useEffect(() => {
-    if (refetchCallData) {
-      const params = {};
-      if (statusFilter === 'open') params.status = 'open';
-      if (statusFilter === 'closed') params.status = 'closed';
-      refetchCallData(params);
-    }
-  }, [statusFilter]);
   const [cityFilter, setCityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
