@@ -14,7 +14,8 @@ function buildFollowupISO(date, hour, minute, ampm) {
   const m = parseInt(minute, 10) || 0;
   if (ampm === 'PM' && h !== 12) h += 12;
   if (ampm === 'AM' && h === 12) h = 0;
-  return `${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+  // Include IST offset (+05:30) so Postgres stores the correct UTC equivalent
+  return `${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+05:30`;
 }
 
 export function CallLogModal({ open, onClose, item, type, onSave }) {
