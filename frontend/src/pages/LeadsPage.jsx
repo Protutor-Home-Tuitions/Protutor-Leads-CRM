@@ -734,7 +734,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                   const hasFormData = lead.hourlyFee || lead.monthlyEstimate || lead.daysPerWeek || lead.hoursPerSession || lead.mapsLink || lead.expectedQuote || (lead.tutorGender && lead.tutorGender !== 'Any') || (lead.quoteAccepted !== undefined && lead.quoteAccepted !== null && lead.quoteAccepted !== '');
                   return (
                     <React.Fragment key={lead.id}>
-                    <tr style={{ borderBottom: hasFormData ? 'none' : '1px solid #f0f0f0' }}
+                    <tr style={{ borderBottom: hasFormData ? 'none' : '3px double #e5e7eb' }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '18px 20px', minWidth: '240px' }}>
@@ -802,19 +802,19 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                       </td>
                     </tr>
                     {hasFormData && (
-                      <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <tr style={{ borderBottom: '3px double #e5e7eb' }}>
                         <td colSpan={5} style={{ padding: '0 20px 14px' }}>
-                          <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                          <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '7px 14px', marginLeft: '82px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '10px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', background: '#ede9fe', borderRadius: '4px', flexShrink: 0 }}>Form data</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0', flexWrap: 'wrap', fontSize: '12px', color: '#5b21b6' }}>
                               {[
                                 lead.tutorGender && lead.tutorGender !== 'Any' ? lead.tutorGender : null,
-                                (lead.daysPerWeek || lead.hoursPerSession) ? `${lead.daysPerWeek ? lead.daysPerWeek + ' days' : ''}${lead.daysPerWeek && lead.hoursPerSession ? ' / ' : ''}${lead.hoursPerSession ? lead.hoursPerSession + ' hr' : ''}` : null,
-                                lead.hourlyFee ? `${lead.hourlyFee}/hr` : null,
+                                (lead.daysPerWeek || lead.hoursPerSession) ? `${lead.daysPerWeek || ''}${lead.daysPerWeek && lead.hoursPerSession ? ' / ' : ''}${lead.hoursPerSession || ''}` : null,
+                                lead.hourlyFee ? (String(lead.hourlyFee).includes('/') ? lead.hourlyFee : `${lead.hourlyFee}/hr`) : null,
                               ].filter(Boolean).map((txt, i) => (
                                 <span key={i} style={{ padding: '0 7px', borderRight: '1px solid #d8b4fe' }}>{txt}</span>
                               ))}
-                              {lead.monthlyEstimate && <span style={{ padding: '0 7px', borderRight: (lead.quoteAccepted || lead.expectedQuote || lead.mapsLink) ? '1px solid #d8b4fe' : 'none', fontWeight: 600 }}>{lead.monthlyEstimate}/mo</span>}
+                              {lead.monthlyEstimate && <span style={{ padding: '0 7px', borderRight: (lead.quoteAccepted || lead.expectedQuote || lead.mapsLink) ? '1px solid #d8b4fe' : 'none', fontWeight: 600 }}>{String(lead.monthlyEstimate).includes('/') ? lead.monthlyEstimate : `${lead.monthlyEstimate}/mo`}</span>}
                               {lead.quoteAccepted !== undefined && lead.quoteAccepted !== null && lead.quoteAccepted !== '' && (
                                 <span style={{ padding: '0 7px', borderRight: (lead.expectedQuote || lead.mapsLink) ? '1px solid #d8b4fe' : 'none' }}>Quote: <span style={{ fontWeight: 600, color: lead.quoteAccepted === 'Yes' || lead.quoteAccepted === true ? '#16a34a' : '#dc2626' }}>{String(lead.quoteAccepted)}</span></span>
                               )}
