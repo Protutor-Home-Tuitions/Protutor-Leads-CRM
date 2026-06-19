@@ -41,6 +41,7 @@ import {
   createNumber,
   updateNumber,
   addNumberCallLog,
+  deleteNumber,
   bumpNumberMsg,
 } from '../lib/api';
 
@@ -78,6 +79,21 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   const logForItem = logFor ? callData.find((n) => n.id === logFor) : null;
   const viewForItem = viewFor ? callData.find((n) => n.id === viewFor) : null;
   const historyForItem = historyFor ? callData.find((n) => n.id === historyFor) : null;
+
+  const onDeleteNumber = useCallback(
+    async (item) => {
+      const name = item.name || item.phone;
+      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+      if (!confirm(`FINAL CONFIRMATION: Deleting "${name}" will remove all call logs and data permanently. Proceed?`)) return;
+      try {
+        await deleteNumber(item.id);
+        setCallData((cur) => cur.filter((n) => n.id !== item.id));
+      } catch (e) {
+        alert('Failed to delete: ' + e.message);
+      }
+    },
+    [setCallData]
+  );
 
   const onLogCall = useCallback(
     async ({ status, type, notes, followupDate }) => {
@@ -243,7 +259,9 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
             <DropdownMenuItem
               className="text-red-600 focus:bg-red-50 focus:text-red-600"
               onClick={() => {
-                if (window.confirm('Delete?')) {
+                if (!isManager) { alert('Only managers can delete.'); return; }
+                if (!window.confirm(`Are you sure you want to delete "${item.name || item.phone}"?`)) return;
+                if (window.confirm(`FINAL CONFIRMATION: Delete permanently?`)) {
                   setCallData((cur) => cur.filter((x) => x.id !== item.id));
                 }
               }}
@@ -557,7 +575,10 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
                               <DropdownMenuItem onClick={() => setViewFor(item.id)}>👁 View Details</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setHistoryFor(item.id)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-500" onClick={() => { /* delete */ }}>🗑 Delete Number</DropdownMenuItem>
+                              {isManager && <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onDeleteNumber(item)} style={{ color: '#dc2626' }}>🗑 Delete Number</DropdownMenuItem>
+                              </>}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

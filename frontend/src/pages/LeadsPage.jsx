@@ -44,6 +44,7 @@ import {
   updateLead,
   toggleLeadStar,
   addLeadCallLog,
+  deleteLead,
   bumpLeadMsg,
 } from '../lib/api';
 
@@ -142,6 +143,21 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
     async (id) => {
       // Visual-only delete in original; here we keep the same UX (optimistic remove via PUT status)
       setLeads((cur) => cur.filter((l) => l.id !== id));
+    },
+    [setLeads]
+  );
+
+  const onDeleteLead = useCallback(
+    async (lead) => {
+      const name = lead.parentName || lead.mobile;
+      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+      if (!confirm(`FINAL CONFIRMATION: Deleting "${name}" will remove all call logs and data permanently. Proceed?`)) return;
+      try {
+        await deleteLead(lead.id);
+        setLeads((cur) => cur.filter((l) => l.id !== lead.id));
+      } catch (e) {
+        alert('Failed to delete: ' + e.message);
+      }
     },
     [setLeads]
   );
@@ -842,6 +858,10 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                               <DropdownMenuItem onClick={() => setViewFor(lead.id)}>👁 View Details</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setHistoryItem(lead)}>📋 Call History</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setEditing(lead); setFormOpen(true); }}>✏️ Edit Lead</DropdownMenuItem>
+                              {isManager && <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onDeleteLead(lead)} style={{ color: '#dc2626' }}>🗑 Delete Lead</DropdownMenuItem>
+                              </>}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

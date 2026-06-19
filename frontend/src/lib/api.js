@@ -182,3 +182,11 @@ export async function deleteUser(id) {
     method: 'DELETE',
   });
 }
+
+export async function deleteLead(id) {
+  return request(`/api/leads/${id}`, { method: 'DELETE' });
+}
+
+export async function deleteNumber(id) {
+  return request(`/api/call-data/${id}`, { method: 'DELETE' });
+}
