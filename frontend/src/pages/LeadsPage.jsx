@@ -115,7 +115,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
 
   const filtered = useMemo(() => {
     let list = leads;
-    if (isCoordinator) list = list.filter((l) => currentUser.cities.includes(l.city));
+    if (isCoordinator) list = list.filter((l) => currentUser.cities.includes(l.city) && !l.movedToSupport);
     if (isSupport) list = list.filter((l) => l.movedToSupport && currentUser.cities.includes(l.city));
     // Status filter is now applied server-side (see useEffect above)
     if (starFilter === 'starred') list = list.filter((l) => l.starred);
