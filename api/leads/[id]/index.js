@@ -17,6 +17,19 @@ export default async function handler(req, res) {
     if ((await assertCanAccessLead(res, user, id)) === null) return
 
     const b = await parseBody(req)
+
+    // Targeted update: Move to Support (only updates the boolean, doesn't touch other fields)
+    if ('movedToSupport' in b && Object.keys(b).length === 1) {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ moved_to_support: !!b.movedToSupport })
+        .eq('id', id)
+        .select('*, call_logs(*)')
+        .single()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.json({ lead: mapLead(data) })
+    }
+
     const { data, error } = await supabase
       .from('leads')
       .update({
