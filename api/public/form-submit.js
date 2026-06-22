@@ -55,17 +55,16 @@ function normalizeQuote(value) {
   return null
 }
 
-// Referral channel whitelist. Unknown / missing codes fall back to 'Form'.
+// Referral channel whitelist — values match the CRM dropdown exactly.
 const REFERRAL_CHANNELS = {
-  c:  'Call',
-  w:  'WhatsApp',
-  o:  'Old Client',
+  c:  'Web call',
+  w:  'Whatsapp',
+  o:  'Old client',
   wb: 'Website',
 }
 function buildSource(rawCode) {
   const code = clean(rawCode, 10).toLowerCase()
-  const channel = REFERRAL_CHANNELS[code]
-  return channel ? `Form - ${channel}` : 'Form'
+  return REFERRAL_CHANNELS[code] || 'Form'
 }
 
 // Decide overall data quality of an incoming payload.
