@@ -53,17 +53,6 @@ export default async function handler(req, res) {
 
   // ── GET /api/leads?view=stats — Dashboard analytics ──────────
   if (req.method === 'GET' && req.query.view === 'stats') {
-    const { data, error } = await supabase.rpc('dashboard_stats', {
-      p_role:      user.role,
-      p_cities:    user.cities || [],
-      p_user_name: user.fname || '',
-    })
-    if (error) return res.status(500).json({ error: 'Stats error: ' + error.message })
-    return res.json(data)
-  }
-
-  // ── GET /api/leads?view=stats — Dashboard analytics ──────────
-  if (req.method === 'GET' && req.query.view === 'stats') {
     const now = new Date()
     const month = parseInt(req.query.month, 10) || (now.getMonth() + 1)
     const year  = parseInt(req.query.year, 10)  || now.getFullYear()
