@@ -220,3 +220,7 @@ export async function deleteLead(id) {
 export async function deleteNumber(id) {
   return request(`/api/call-data/${id}`, { method: 'DELETE' });
 }
+
+export async function fetchDashboardStats(month, year) {
+  return request(`/api/leads?view=stats&month=${month}&year=${year}`);
+}

@@ -513,7 +513,7 @@ export default function App() {
           {page === 'users' && user.role === 'manager' && (
             <UsersPage users={users} setUsers={setUsers} currentUser={user} />
           )}
-          {page === 'dashboard' && <DashboardPage />}
+          {page === 'dashboard' && <DashboardPage currentUser={user} />}
         </div>
       </div>
     </div>
