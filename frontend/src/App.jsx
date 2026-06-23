@@ -513,7 +513,11 @@ export default function App() {
           {page === 'users' && user.role === 'manager' && (
             <UsersPage users={users} setUsers={setUsers} currentUser={user} />
           )}
-          {page === 'dashboard' && <DashboardPage currentUser={user} />}
+          {page === 'dashboard' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <DashboardPage currentUser={user} />
+            </div>
+          )}
         </div>
       </div>
     </div>
