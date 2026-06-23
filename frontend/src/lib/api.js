@@ -221,6 +221,8 @@ export async function deleteNumber(id) {
   return request(`/api/call-data/${id}`, { method: 'DELETE' });
 }
 
-export async function fetchDashboardStats(month, year) {
-  return request(`/api/leads?view=stats&month=${month}&year=${year}`);
+export async function fetchDashboardStats(month, year, city = '') {
+  let url = `/api/leads?view=stats&month=${month}&year=${year}`;
+  if (city) url += `&city=${encodeURIComponent(city)}`;
+  return request(url);
 }

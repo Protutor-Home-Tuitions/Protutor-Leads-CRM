@@ -35,6 +35,7 @@ const th = { textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#
 const thR = { ...th, textAlign: 'right' };
 const td = { padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#374151', fontWeight: 500 };
 const tdR = { ...td, textAlign: 'right' };
+const selectStyle = { height: '38px', padding: '0 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', color: '#374151', cursor: 'pointer' };
 
 function Badge({ children, color = '#6b7280', bg = '#f3f4f6' }) {
   return <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color, background: bg }}>{children}</span>;
@@ -71,7 +72,7 @@ function AlertRow({ label, sub, count, bg, color }) {
   );
 }
 
-// ── Stacked bar chart colors ──────────────────────────────────
+// ── Status colors for stacked chart ───────────────────────────
 const STATUS_COLORS = {
   'Qualified':                '#7F77DD',
   'Not Attended':             '#888780',
@@ -100,11 +101,9 @@ const STATUS_COLORS = {
 };
 function getStatusColor(status) {
   if (STATUS_COLORS[status]) return STATUS_COLORS[status];
-  // Deterministic color from string hash (same status always gets same color)
   let hash = 0;
   for (let i = 0; i < status.length; i++) hash = status.charCodeAt(i) + ((hash << 5) - hash);
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, 45%, 50%)`;
+  return `hsl(${Math.abs(hash) % 360}, 45%, 50%)`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -113,6 +112,7 @@ function getStatusColor(status) {
 export function DashboardPage({ currentUser }) {
   const [month, setMonth] = useState(CURRENT_MONTH);
   const [year, setYear] = useState(CURRENT_YEAR);
+  const [city, setCity] = useState('');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -123,19 +123,20 @@ export function DashboardPage({ currentUser }) {
   const dailyChart = useRef(null);
 
   const isManager = currentUser?.role === 'manager';
+  const isCoordinator = currentUser?.role === 'coordinator';
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchDashboardStats(month, year);
+      const data = await fetchDashboardStats(month, year, city);
       setStats(data);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [month, year]);
+  }, [month, year, city]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -143,8 +144,8 @@ export function DashboardPage({ currentUser }) {
   useEffect(() => {
     if (!stats) return;
     loadChartJs().then(() => {
-      drawReasonsChart();
       drawDailyChart();
+      drawReasonsChart();
     });
   }, [stats]);
 
@@ -163,12 +164,7 @@ export function DashboardPage({ currentUser }) {
       type: 'bar',
       data: {
         labels,
-        datasets: [{
-          data,
-          backgroundColor: '#7F77DD',
-          borderRadius: 4,
-          barThickness: 22,
-        }],
+        datasets: [{ data, backgroundColor: '#7F77DD', borderRadius: 4, barThickness: 22 }],
       },
       options: {
         indexAxis: 'y',
@@ -195,19 +191,16 @@ export function DashboardPage({ currentUser }) {
     const labels = [];
     for (let d = 1; d <= daysInMonth; d++) labels.push(d);
 
-    // Collect unique statuses
     const statusSet = new Set();
     raw.forEach(r => statusSet.add(r.status));
     const statuses = Array.from(statusSet);
 
-    // Build a map: day → status → count
     const map = {};
     raw.forEach(r => {
       if (!map[r.day]) map[r.day] = {};
       map[r.day][r.status] = r.count;
     });
 
-    // Compute totals per day (for labels on top)
     const dayTotals = labels.map(d => {
       let t = 0;
       statuses.forEach(s => { t += (map[d]?.[s] || 0); });
@@ -244,9 +237,7 @@ export function DashboardPage({ currentUser }) {
             ctx.textAlign = 'center';
             const meta = chart.getDatasetMeta(datasets.length - 1);
             meta.data.forEach((bar, i) => {
-              if (dayTotals[i] > 0) {
-                ctx.fillText(dayTotals[i], bar.x, bar.y - 6);
-              }
+              if (dayTotals[i] > 0) ctx.fillText(dayTotals[i], bar.x, bar.y - 6);
             });
           },
         },
@@ -254,7 +245,7 @@ export function DashboardPage({ currentUser }) {
     });
   }
 
-  // ── Loading / error states ──────────────────────────────────
+  // ── Loading / error ─────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#9ca3af', fontSize: '14px' }}>
@@ -272,42 +263,44 @@ export function DashboardPage({ currentUser }) {
   }
   if (!stats) return null;
 
-  const { summary, byCity, bySource, closedReasons, dailyCalls, alerts } = stats;
+  const { summary, mtsStats, byCity, bySource, closedReasons, dailyCalls, alerts, availableCities } = stats;
   const convRate = summary.total > 0 ? ((summary.converted / summary.total) * 100).toFixed(1) : '0';
+  const mtsConvRate = mtsStats.total > 0 ? ((mtsStats.converted / mtsStats.total) * 100).toFixed(1) : '0';
   const maxCity = Math.max(...(byCity || []).map(c => c.total), 1);
   const maxSource = Math.max(...(bySource || []).map(s => s.total), 1);
-
-  // Build legend for daily chart
   const dailyStatuses = Array.from(new Set((dailyCalls || []).map(r => r.status)));
+
+  // City options for dropdown
+  const cityOptions = isManager
+    ? (availableCities || [])
+    : (currentUser?.cities || []);
 
   return (
     <div style={{ padding: '0 0 40px', maxWidth: '1200px' }}>
 
-      {/* ── Header + Month/Year filter in same row ────────── */}
+      {/* ── Header + Month/Year/City filter ───────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#111827' }}>
             {isManager ? 'Manager Dashboard' : 'My Dashboard'}
           </div>
           <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-            {isManager ? 'All cities' : (currentUser?.cities || []).join(', ')}
+            {city || (isManager ? 'All cities' : (currentUser?.cities || []).join(', '))}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            style={{ height: '38px', padding: '0 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', color: '#374151', cursor: 'pointer' }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={selectStyle}>
             {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            style={{ height: '38px', padding: '0 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', color: '#374151', cursor: 'pointer' }}
-          >
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))} style={selectStyle}>
             {yearRange().map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          {cityOptions.length > 1 && (
+            <select value={city} onChange={(e) => setCity(e.target.value)} style={selectStyle}>
+              <option value="">{isManager ? 'All cities' : 'All my cities'}</option>
+              {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
           <button onClick={load} style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
             Refresh
           </button>
@@ -323,7 +316,39 @@ export function DashboardPage({ currentUser }) {
         <StatCard label="Starred" value={summary.starred} color="#BA7517" />
       </div>
 
-      {/* ── ROW 2: City-wise ──────────────────────────────── */}
+      {/* ── ROW 2: Moved to support cards ─────────────────── */}
+      {mtsStats.total > 0 && (
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <StatCard label="Moved to support" value={mtsStats.total} color="#5b21b6" />
+          <StatCard label="MTS — Open" value={mtsStats.open} color="#b45309" />
+          <StatCard label="MTS — Closed" value={mtsStats.closed} color="#0f6e56" />
+          <StatCard label="MTS — Converted" value={mtsStats.converted} color="#378ADD" sub={`${mtsConvRate}% conversion`} />
+        </div>
+      )}
+
+      {/* ── ROW 3: Daily calls chart (top priority) ───────── */}
+      <div style={card}>
+        <div style={sTitle}>{isCoordinator ? 'My daily calls' : 'Daily calls'}</div>
+        {dailyCalls && dailyCalls.length > 0 ? (
+          <>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
+              {dailyStatuses.map((s, i) => (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: getStatusColor(s), flexShrink: 0 }} />
+                  {s}
+                </span>
+              ))}
+            </div>
+            <div style={{ position: 'relative', width: '100%', height: '300px' }}>
+              <canvas ref={dailyRef}></canvas>
+            </div>
+          </>
+        ) : (
+          <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '30px' }}>No calls this month</div>
+        )}
+      </div>
+
+      {/* ── ROW 4: City-wise ──────────────────────────────── */}
       {byCity && byCity.length > 0 && (
         <div style={card}>
           <div style={sTitle}>Leads by city</div>
@@ -344,7 +369,7 @@ export function DashboardPage({ currentUser }) {
         </div>
       )}
 
-      {/* ── ROW 3: Source performance ─────────────────────── */}
+      {/* ── ROW 5: Source performance ─────────────────────── */}
       {bySource && bySource.length > 0 && (
         <div style={card}>
           <div style={sTitle}>Source performance</div>
@@ -384,7 +409,7 @@ export function DashboardPage({ currentUser }) {
         </div>
       )}
 
-      {/* ── ROW 4: Closed lead reasons (horizontal bar) ───── */}
+      {/* ── ROW 6: Closed lead reasons (horizontal bar) ───── */}
       <div style={card}>
         <div style={sTitle}>Closed lead reasons</div>
         {closedReasons && closedReasons.length > 0 ? (
@@ -396,33 +421,10 @@ export function DashboardPage({ currentUser }) {
         )}
       </div>
 
-      {/* ── ROW 5: Daily calls (stacked bar) ──────────────── */}
-      <div style={card}>
-        <div style={sTitle}>{isManager ? 'Daily calls' : 'My daily calls'}</div>
-        {dailyCalls && dailyCalls.length > 0 ? (
-          <>
-            {/* Legend */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
-              {dailyStatuses.map((s, i) => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: getStatusColor(s), flexShrink: 0 }} />
-                  {s}
-                </span>
-              ))}
-            </div>
-            <div style={{ position: 'relative', width: '100%', height: '300px' }}>
-              <canvas ref={dailyRef}></canvas>
-            </div>
-          </>
-        ) : (
-          <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '30px' }}>No calls this month</div>
-        )}
-      </div>
-
-      {/* ── ROW 6: Alerts (live) ──────────────────────────── */}
+      {/* ── ROW 7: Alerts (live) ──────────────────────────── */}
       <div style={card}>
         <div style={sTitle}>Attention needed</div>
-        <AlertRow label={isManager ? "Calls made today (all)" : "My calls today"} sub="Total calls logged today" count={alerts?.callsToday || 0} bg="#eff6ff" color="#185FA5" />
+        <AlertRow label={isCoordinator ? "My calls today" : "Calls made today"} sub="Total calls logged today" count={alerts?.callsToday || 0} bg="#eff6ff" color="#185FA5" />
         <AlertRow label="Never called" sub="Open leads with zero call logs" count={alerts?.neverCalled || 0} bg="#fef2f2" color="#991b1b" />
         <AlertRow label="Follow-ups due today" sub="Scheduled for today, not yet called" count={alerts?.followupsDueToday || 0} bg="#fffbeb" color="#92400e" />
         <AlertRow label="Moved to support" sub="Open leads in support queue" count={alerts?.movedToSupport || 0} bg="#f5f3ff" color="#5b21b6" />

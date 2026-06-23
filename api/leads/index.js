@@ -56,6 +56,7 @@ export default async function handler(req, res) {
     const now = new Date()
     const month = parseInt(req.query.month, 10) || (now.getMonth() + 1)
     const year  = parseInt(req.query.year, 10)  || now.getFullYear()
+    const city  = req.query.city || ''
 
     const { data, error } = await supabase.rpc('dashboard_stats', {
       p_role:      user.role,
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
       p_user_name: user.fname || '',
       p_month:     month,
       p_year:      year,
+      p_city:      city,
     })
     if (error) return res.status(500).json({ error: 'Stats error: ' + error.message })
     return res.json(data)
