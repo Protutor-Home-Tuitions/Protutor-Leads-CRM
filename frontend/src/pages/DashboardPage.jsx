@@ -427,7 +427,6 @@ export function DashboardPage({ currentUser }) {
         <AlertRow label={isCoordinator ? "My calls today" : "Calls made today"} sub="Total calls logged today" count={alerts?.callsToday || 0} bg="#eff6ff" color="#185FA5" />
         <AlertRow label="Never called" sub="Open leads with zero call logs" count={alerts?.neverCalled || 0} bg="#fef2f2" color="#991b1b" />
         <AlertRow label="Follow-ups due today" sub="Scheduled for today, not yet called" count={alerts?.followupsDueToday || 0} bg="#fffbeb" color="#92400e" />
-        <AlertRow label="Moved to support" sub="Open leads in support queue" count={alerts?.movedToSupport || 0} bg="#f5f3ff" color="#5b21b6" />
       </div>
     </div>
   );
