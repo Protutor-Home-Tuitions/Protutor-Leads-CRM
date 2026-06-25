@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users as UsersIcon, PhoneCall, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users as UsersIcon, PhoneCall, PhoneMissed, Settings, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Sidebar({ currentPage, onNavigate, currentUser, onLogout }) {
@@ -8,6 +8,7 @@ export function Sidebar({ currentPage, onNavigate, currentUser, onLogout }) {
     { id: 'leads', label: 'Leads', icon: UsersIcon },
     { id: 'calldata', label: 'Call Data', icon: PhoneCall },
     ...(isManager ? [{ id: 'users', label: 'User Management', icon: Settings }] : []),
+    ...(isManager ? [{ id: 'missedcalls', label: 'Missed Calls', icon: PhoneMissed }] : []),
   ];
 
   return (

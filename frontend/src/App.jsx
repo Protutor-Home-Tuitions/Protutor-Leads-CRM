@@ -5,6 +5,7 @@ import { LeadsPage } from './pages/LeadsPage';
 import { CallDataPage } from './pages/CallDataPage';
 import { UsersPage } from './pages/UsersPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { MissedCallsPage } from './pages/MissedCallsPage';
 import { Bell, Phone, Clock, X } from 'lucide-react';
 import {
   fetchLeads,
@@ -23,6 +24,7 @@ const PAGE_TITLES = {
   calldata: 'Call Data',
   users: 'User Management',
   dashboard: 'Dashboard',
+  missedcalls: 'Missed Calls',
 };
 
 export default function App() {
@@ -516,6 +518,11 @@ export default function App() {
           {page === 'dashboard' && (
             <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
               <DashboardPage currentUser={user} />
+            </div>
+          )}
+          {page === 'missedcalls' && user.role === 'manager' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <MissedCallsPage />
             </div>
           )}
         </div>
