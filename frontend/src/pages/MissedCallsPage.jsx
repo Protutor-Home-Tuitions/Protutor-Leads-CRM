@@ -64,13 +64,16 @@ const badgeStyle = (bg, color) => ({
 // ── Component ──
 export function MissedCallsPage() {
   const [calls, setCalls] = useState([]);
-  const [stats, setStats] = useState({ total: 0, unique: 0, sent: 0, failed: 0, leads: 0, pending: 0 });
+  const [stats, setStats] = useState({ total: 0, unique: 0, sent: 0, failed: 0, noReply: 0, pending: 0, leads: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ total: 0, unique: 0, sent: 0, failed: 0, noReply: 0, pending: 0, leads: 0 });
   const [dailyStats, setDailyStats] = useState([]);
   const [heartbeat, setHeartbeat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-11
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
@@ -97,7 +100,8 @@ export function MissedCallsPage() {
       // Fetch all for stats
       const { data: allCalls } = await supabase
         .from('missed_calls')
-        .select('id, is_duplicate, msg_status, form_status');
+        .select('id, is_duplicate, msg_status, form_status, button_reply')
+        .limit(10000);
 
       if (allCalls) {
         setStats({
@@ -105,18 +109,45 @@ export function MissedCallsPage() {
           unique: allCalls.filter(c => !c.is_duplicate).length,
           sent: allCalls.filter(c => c.msg_status === 'sent').length,
           failed: allCalls.filter(c => c.msg_status === 'failed').length,
+          noReply: allCalls.filter(c => c.msg_status === 'sent' && !c.button_reply && !c.is_duplicate).length,
+          pending: allCalls.filter(c => c.form_status === 'pending').length,
           leads: allCalls.filter(c => c.form_status === 'lead_received').length,
-          pending: allCalls.filter(c => !c.form_status || c.form_status === 'pending' || c.form_status === 'not_yet').length,
         });
       }
 
-      // Fetch daily funnel
+      // Fetch monthly funnel data
+      const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+      const nextMonth = selectedMonth === 11
+        ? `${selectedYear + 1}-01-01`
+        : `${selectedYear}-${String(selectedMonth + 2).padStart(2, '0')}-01`;
+
+      // Fetch monthly stats from missed_calls
+      const { data: monthlyCalls } = await supabase
+        .from('missed_calls')
+        .select('id, is_duplicate, msg_status, form_status, button_reply')
+        .gte('call_logged_at', monthStart)
+        .lt('call_logged_at', nextMonth)
+        .limit(10000);
+
+      if (monthlyCalls) {
+        setMonthlyStats({
+          total: monthlyCalls.length,
+          unique: monthlyCalls.filter(c => !c.is_duplicate).length,
+          sent: monthlyCalls.filter(c => c.msg_status === 'sent').length,
+          failed: monthlyCalls.filter(c => c.msg_status === 'failed').length,
+          noReply: monthlyCalls.filter(c => c.msg_status === 'sent' && !c.button_reply && !c.is_duplicate).length,
+          pending: monthlyCalls.filter(c => c.form_status === 'pending').length,
+          leads: monthlyCalls.filter(c => c.form_status === 'lead_received').length,
+        });
+      }
+
       const { data: daily } = await supabase
         .from('v_missed_call_funnel')
         .select('*')
-        .order('day', { ascending: false })
-        .limit(14);
-      setDailyStats((daily || []).reverse());
+        .gte('day', monthStart)
+        .lt('day', nextMonth)
+        .order('day', { ascending: true });
+      setDailyStats(daily || []);
 
       // Fetch heartbeat
       const { data: hb } = await supabase
@@ -132,7 +163,7 @@ export function MissedCallsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter, search]);
+  }, [filter, search, selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchData();
@@ -175,14 +206,17 @@ export function MissedCallsPage() {
 
   const isPhoneOnline = heartbeat && (Date.now() - new Date(heartbeat.last_ping_at).getTime()) < 10 * 60 * 1000;
 
-  const statCards = [
-    { label: 'Total Calls', value: stats.total, color: '#3b82f6' },
-    { label: 'Unique', value: stats.unique, color: '#8b5cf6' },
-    { label: 'WA Sent', value: stats.sent, color: '#22c55e' },
-    { label: 'WA Failed', value: stats.failed, color: '#ef4444' },
-    { label: 'Leads', value: stats.leads, color: '#f59e0b' },
-    { label: 'Pending', value: stats.pending, color: '#f97316' },
+  const statCardLabels = [
+    { key: 'total', label: 'Total Calls', color: '#3b82f6' },
+    { key: 'unique', label: 'Unique', color: '#8b5cf6' },
+    { key: 'sent', label: 'WA Sent', color: '#22c55e' },
+    { key: 'failed', label: 'WA Failed', color: '#ef4444' },
+    { key: 'noReply', label: 'No Reply', color: '#94a3b8' },
+    { key: 'pending', label: 'Pending', color: '#f97316' },
+    { key: 'leads', label: 'Leads', color: '#f59e0b' },
   ];
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
@@ -231,19 +265,105 @@ export function MissedCallsPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-        {statCards.map(({ label, value, color }) => (
-          <div key={label} style={statCardStyle(color)}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-            <span style={{ fontSize: '24px', fontWeight: 700, color: '#111827' }}>{value}</span>
+      {/* Row 1: All-time stat cards */}
+      <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>All Time</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+        {statCardLabels.map(({ key, label, color }) => (
+          <div key={`all-${key}`} style={statCardStyle(color)}>
+            <span style={{ fontSize: '10px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+            <span style={{ fontSize: '22px', fontWeight: 700, color: '#111827' }}>{stats[key]}</span>
           </div>
         ))}
       </div>
 
+      {/* Row 2: Monthly stat cards with month/year selector */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {months[selectedMonth]} {selectedYear}
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            style={{
+              padding: '3px 6px', border: '1px solid #e5e7eb', borderRadius: '6px',
+              fontSize: '11px', background: '#fff', outline: 'none', cursor: 'pointer',
+            }}
+          >
+            {months.map((m, i) => (
+              <option key={m} value={i}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            style={{
+              padding: '3px 6px', border: '1px solid #e5e7eb', borderRadius: '6px',
+              fontSize: '11px', background: '#fff', outline: 'none', cursor: 'pointer',
+            }}
+          >
+            {[2025, 2026, 2027].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+        {statCardLabels.map(({ key, label, color }) => (
+          <div key={`month-${key}`} style={statCardStyle(color)}>
+            <span style={{ fontSize: '10px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+            <span style={{ fontSize: '22px', fontWeight: 700, color: '#111827' }}>{monthlyStats[key]}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Monthly Summary Funnel */}
+      {(() => {
+        const mTotal = dailyStats.reduce((s, d) => s + (d.total_calls || 0), 0);
+        const mUnique = dailyStats.reduce((s, d) => s + (d.unique_calls || 0), 0);
+        const mSent = dailyStats.reduce((s, d) => s + (d.msgs_sent || 0), 0);
+        const mClient = dailyStats.reduce((s, d) => s + (d.button_client || 0), 0);
+        const mTutor = dailyStats.reduce((s, d) => s + (d.button_tutor || 0), 0);
+        const mLeads = dailyStats.reduce((s, d) => s + (d.leads_received || 0), 0);
+        const funnelSteps = [
+          { label: 'Calls', value: mTotal, color: '#3b82f6' },
+          { label: 'Unique', value: mUnique, color: '#8b5cf6' },
+          { label: 'WA Sent', value: mSent, color: '#22c55e' },
+          { label: 'Replied', value: mClient + mTutor, color: '#6366f1' },
+          { label: 'Clients', value: mClient, color: '#0ea5e9' },
+          { label: 'Leads', value: mLeads, color: '#f59e0b' },
+        ];
+        return (
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
+              {months[selectedMonth]} {selectedYear} — Calls to Leads
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0', flexWrap: 'wrap' }}>
+              {funnelSteps.map((step, i) => (
+                <div key={step.label} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{
+                    textAlign: 'center', padding: '10px 16px',
+                    background: step.value > 0 ? `${step.color}10` : '#f9fafb',
+                    borderRadius: '8px', minWidth: '80px',
+                  }}>
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: step.color }}>{step.value}</div>
+                    <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginTop: '2px' }}>{step.label}</div>
+                  </div>
+                  {i < funnelSteps.length - 1 && (
+                    <span style={{ fontSize: '16px', color: '#d1d5db', margin: '0 4px' }}>→</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Chart */}
       <div style={{ ...cardStyle, marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>Daily Funnel (Last 14 Days)</div>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
+          Daily Breakdown — {months[selectedMonth]} {selectedYear}
+        </div>
         <div style={{ height: '260px', position: 'relative' }}>
           {dailyStats.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: '13px' }}>
