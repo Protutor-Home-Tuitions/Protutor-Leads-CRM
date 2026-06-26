@@ -317,48 +317,6 @@ export function MissedCallsPage() {
         ))}
       </div>
 
-      {/* Monthly Summary Funnel */}
-      {(() => {
-        const mTotal = dailyStats.reduce((s, d) => s + (d.total_calls || 0), 0);
-        const mUnique = dailyStats.reduce((s, d) => s + (d.unique_calls || 0), 0);
-        const mSent = dailyStats.reduce((s, d) => s + (d.msgs_sent || 0), 0);
-        const mClient = dailyStats.reduce((s, d) => s + (d.button_client || 0), 0);
-        const mTutor = dailyStats.reduce((s, d) => s + (d.button_tutor || 0), 0);
-        const mLeads = dailyStats.reduce((s, d) => s + (d.leads_received || 0), 0);
-        const funnelSteps = [
-          { label: 'Calls', value: mTotal, color: '#3b82f6' },
-          { label: 'Unique', value: mUnique, color: '#8b5cf6' },
-          { label: 'WA Sent', value: mSent, color: '#22c55e' },
-          { label: 'Replied', value: mClient + mTutor, color: '#6366f1' },
-          { label: 'Clients', value: mClient, color: '#0ea5e9' },
-          { label: 'Leads', value: mLeads, color: '#f59e0b' },
-        ];
-        return (
-          <div style={{ ...cardStyle, marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
-              {months[selectedMonth]} {selectedYear} — Calls to Leads
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0', flexWrap: 'wrap' }}>
-              {funnelSteps.map((step, i) => (
-                <div key={step.label} style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{
-                    textAlign: 'center', padding: '10px 16px',
-                    background: step.value > 0 ? `${step.color}10` : '#f9fafb',
-                    borderRadius: '8px', minWidth: '80px',
-                  }}>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: step.color }}>{step.value}</div>
-                    <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginTop: '2px' }}>{step.label}</div>
-                  </div>
-                  {i < funnelSteps.length - 1 && (
-                    <span style={{ fontSize: '16px', color: '#d1d5db', margin: '0 4px' }}>→</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Chart */}
       <div style={{ ...cardStyle, marginBottom: '20px' }}>
         <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
