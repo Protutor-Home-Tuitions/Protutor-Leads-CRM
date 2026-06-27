@@ -187,10 +187,10 @@ export function MissedCallsPage() {
         data: {
           labels: dailyStats.map(d => fmtShortDate(d.day)),
           datasets: [
-            { label: 'Total', data: dailyStats.map(d => d.total_calls), backgroundColor: '#3b82f6', borderRadius: 4 },
-            { label: 'Unique', data: dailyStats.map(d => d.unique_calls), backgroundColor: '#8b5cf6', borderRadius: 4 },
-            { label: 'Sent', data: dailyStats.map(d => d.msgs_sent), backgroundColor: '#22c55e', borderRadius: 4 },
-            { label: 'Leads', data: dailyStats.map(d => d.leads_received), backgroundColor: '#f59e0b', borderRadius: 4 },
+            { label: 'Client', data: dailyStats.map(d => d.button_client || 0), backgroundColor: '#22c55e', stack: 'unique', borderRadius: 0 },
+            { label: 'Tutor', data: dailyStats.map(d => d.button_tutor || 0), backgroundColor: '#8b5cf6', stack: 'unique', borderRadius: 0 },
+            { label: 'No Reply', data: dailyStats.map(d => Math.max(0, (d.unique_calls || 0) - (d.button_client || 0) - (d.button_tutor || 0))), backgroundColor: '#d1d5db', stack: 'unique', borderRadius: 4 },
+            { label: 'Leads', data: dailyStats.map(d => d.leads_received || 0), backgroundColor: '#f59e0b', stack: 'leads', borderRadius: 4 },
           ],
         },
         options: {
@@ -198,8 +198,8 @@ export function MissedCallsPage() {
           maintainAspectRatio: false,
           plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 11 } } } },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, ticks: { font: { size: 11 }, stepSize: 1 } },
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { stacked: true, beginAtZero: true, ticks: { font: { size: 11 }, stepSize: 1 } },
           },
         },
       });
