@@ -244,6 +244,23 @@ export default function WhatsAppInboundPage() {
     if (normalized.length !== 10) { alert('Enter a valid 10-digit phone number'); return; }
 
     setSaving(true);
+
+    // Check for open records (any source)
+    const { data: openRecords } = await supabase
+      .from('missed_calls')
+      .select('id, source, form_status')
+      .eq('phone_number', normalized)
+      .eq('is_duplicate', false)
+      .or('form_status.is.null,form_status.eq.pending')
+      .limit(1);
+
+    if (openRecords && openRecords.length > 0) {
+      setSaving(false);
+      const src = openRecords[0].source === 'call' ? 'Missed Calls' : 'WhatsApp Inquiries';
+      alert(`This number already has an open record in ${src}. Cannot add duplicate.`);
+      return;
+    }
+
     const { error } = await supabase.from('missed_calls').insert({
       phone_number: normalized,
       country_code: '91',
