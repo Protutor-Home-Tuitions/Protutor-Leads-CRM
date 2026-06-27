@@ -83,6 +83,7 @@ export function MissedCallsPage() {
       let query = supabase
         .from('missed_calls')
         .select('*')
+        .eq('source', 'call')
         .order('call_logged_at', { ascending: false })
         .limit(300);
 
@@ -101,6 +102,7 @@ export function MissedCallsPage() {
       const { data: allCalls } = await supabase
         .from('missed_calls')
         .select('id, is_duplicate, msg_status, form_status, button_reply')
+        .eq('source', 'call')
         .limit(10000);
 
       if (allCalls) {
@@ -125,6 +127,7 @@ export function MissedCallsPage() {
       const { data: monthlyCalls } = await supabase
         .from('missed_calls')
         .select('id, is_duplicate, msg_status, form_status, button_reply')
+        .eq('source', 'call')
         .gte('call_logged_at', monthStart)
         .lt('call_logged_at', nextMonth)
         .limit(10000);
