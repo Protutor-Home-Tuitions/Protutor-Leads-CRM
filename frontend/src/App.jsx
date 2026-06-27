@@ -6,6 +6,7 @@ import { CallDataPage } from './pages/CallDataPage';
 import { UsersPage } from './pages/UsersPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { MissedCallsPage } from './pages/MissedCallsPage';
+import WhatsAppInboundPage from './pages/WhatsAppInboundPage';
 import { Bell, Phone, Clock, X } from 'lucide-react';
 import {
   fetchLeads,
@@ -25,6 +26,7 @@ const PAGE_TITLES = {
   users: 'User Management',
   dashboard: 'Dashboard',
   missedcalls: 'Missed Calls',
+  whatsapp_inbound: 'WA Inquiries',
 };
 
 export default function App() {
@@ -523,6 +525,11 @@ export default function App() {
           {page === 'missedcalls' && user.role === 'manager' && (
             <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
               <MissedCallsPage />
+            </div>
+          )}
+          {page === 'whatsapp_inbound' && user.role === 'manager' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <WhatsAppInboundPage />
             </div>
           )}
         </div>

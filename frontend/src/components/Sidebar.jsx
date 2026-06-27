@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users as UsersIcon, PhoneCall, PhoneMissed, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users as UsersIcon, PhoneCall, PhoneMissed, MessageCircle, Settings, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Sidebar({ currentPage, onNavigate, currentUser, onLogout }) {
@@ -9,6 +9,7 @@ export function Sidebar({ currentPage, onNavigate, currentUser, onLogout }) {
     { id: 'calldata', label: 'Call Data', icon: PhoneCall },
     ...(isManager ? [{ id: 'users', label: 'User Management', icon: Settings }] : []),
     ...(isManager ? [{ id: 'missedcalls', label: 'Missed Calls', icon: PhoneMissed }] : []),
+    ...(isManager ? [{ id: 'whatsapp_inbound', label: 'WA Inquiries', icon: MessageCircle }] : []),
   ];
 
   return (
