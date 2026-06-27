@@ -74,8 +74,12 @@ export function MissedCallsPage() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-11
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailedData, setDetailedData] = useState({ dayOfWeek: [], followups: [] });
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+  const dowChartRef = useRef(null);
+  const dowChartInstance = useRef(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -152,6 +156,41 @@ export function MissedCallsPage() {
         .order('day', { ascending: true });
       setDailyStats(daily || []);
 
+      // ---- Detailed analysis: day-of-week + followup effectiveness ----
+      const { data: detailRows } = await supabase
+        .from('missed_calls')
+        .select('call_logged_at, is_duplicate, form_status, followup_count')
+        .eq('source', 'call')
+        .gte('call_logged_at', monthStart)
+        .lt('call_logged_at', nextMonth)
+        .eq('is_duplicate', false)
+        .limit(10000);
+
+      if (detailRows) {
+        // Day of week: 0=Sun, 1=Mon, ... 6=Sat
+        const dowData = [0, 1, 2, 3, 4, 5, 6].map(d => ({
+          day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d],
+          total: 0,
+          leads: 0,
+        }));
+        detailRows.forEach(r => {
+          const d = new Date(r.call_logged_at).getDay();
+          dowData[d].total++;
+          if (r.form_status === 'lead_received') dowData[d].leads++;
+        });
+
+        // Follow-up effectiveness
+        // For each followup_count: how many had that count, and how many converted to lead
+        const followupBuckets = [1, 2, 3].map(n => {
+          const sent = detailRows.filter(r => (r.followup_count || 0) >= n).length;
+          const leads = detailRows.filter(r => (r.followup_count || 0) >= n && r.form_status === 'lead_received').length;
+          const pct = sent > 0 ? Math.round((leads / sent) * 100) : 0;
+          return { followup: n, sent, leads, pct };
+        });
+
+        setDetailedData({ dayOfWeek: dowData, followups: followupBuckets });
+      }
+
       // Fetch heartbeat
       const { data: hb } = await supabase
         .from('phone_heartbeat')
@@ -206,6 +245,36 @@ export function MissedCallsPage() {
     });
     return () => { if (chartInstance.current) chartInstance.current.destroy(); };
   }, [dailyStats]);
+
+  // Day-of-week chart
+  useEffect(() => {
+    if (!showDetails || !detailedData.dayOfWeek.length) return;
+    loadChartJs().then(() => {
+      if (!dowChartRef.current || !window.Chart) return;
+      if (dowChartInstance.current) dowChartInstance.current.destroy();
+      const ctx = dowChartRef.current.getContext('2d');
+      dowChartInstance.current = new window.Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: detailedData.dayOfWeek.map(d => d.day),
+          datasets: [
+            { label: 'Total Calls', data: detailedData.dayOfWeek.map(d => d.total), backgroundColor: '#8b5cf6', borderRadius: 4 },
+            { label: 'Leads', data: detailedData.dayOfWeek.map(d => d.leads), backgroundColor: '#f59e0b', borderRadius: 4 },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 11 } } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { font: { size: 11 }, stepSize: 1 } },
+          },
+        },
+      });
+    });
+    return () => { if (dowChartInstance.current) dowChartInstance.current.destroy(); };
+  }, [showDetails, detailedData]);
 
   const isPhoneOnline = heartbeat && (Date.now() - new Date(heartbeat.last_ping_at).getTime()) < 10 * 60 * 1000;
 
@@ -322,8 +391,20 @@ export function MissedCallsPage() {
 
       {/* Chart */}
       <div style={{ ...cardStyle, marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
-          Daily Breakdown — {months[selectedMonth]} {selectedYear}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>
+            Daily Breakdown — {months[selectedMonth]} {selectedYear}
+          </div>
+          <button
+            onClick={() => setShowDetails(s => !s)}
+            style={{
+              padding: '5px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
+              background: showDetails ? '#3b82f6' : '#fff', color: showDetails ? '#fff' : '#374151',
+              cursor: 'pointer', fontSize: '12px', fontWeight: 500,
+            }}
+          >
+            {showDetails ? '▼ Hide Detailed Analysis' : '▶ Detailed Analysis'}
+          </button>
         </div>
         <div style={{ height: '260px', position: 'relative' }}>
           {dailyStats.length === 0 ? (
@@ -335,6 +416,46 @@ export function MissedCallsPage() {
           )}
         </div>
       </div>
+
+      {/* Detailed Analysis (collapsible) */}
+      {showDetails && (
+        <div style={{ ...cardStyle, marginBottom: '20px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px' }}>
+            Day-of-Week Pattern — {months[selectedMonth]} {selectedYear}
+          </div>
+          <div style={{ height: '220px', position: 'relative', marginBottom: '20px' }}>
+            <canvas ref={dowChartRef} />
+          </div>
+
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '12px', marginTop: '20px' }}>
+            Follow-up Effectiveness
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>Stage</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>Sent</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>Leads After</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>Conversion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailedData.followups.map(f => (
+                  <tr key={f.followup} style={{ borderBottom: '1px solid #f9fafb' }}>
+                    <td style={{ padding: '10px' }}>Follow-up {f.followup}</td>
+                    <td style={{ padding: '10px' }}>{f.sent}</td>
+                    <td style={{ padding: '10px' }}>{f.leads}</td>
+                    <td style={{ padding: '10px', fontWeight: 600, color: f.pct >= 10 ? '#16a34a' : f.pct >= 5 ? '#f97316' : '#6b7280' }}>
+                      {f.pct}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Filters + Table */}
       <div style={cardStyle}>
