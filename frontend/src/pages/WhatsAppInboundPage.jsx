@@ -169,7 +169,7 @@ export default function WhatsAppInboundPage() {
       data: {
         labels: dailyStats.map(d => fmtShortDate(d.day)),
         datasets: [
-          { label: 'Client', data: dailyStats.map(d => d.form_pending || 0), backgroundColor: '#22c55e', stack: 'unique', borderRadius: 0 },
+          { label: 'Client', data: dailyStats.map(d => d.client_count || 0), backgroundColor: '#22c55e', stack: 'unique', borderRadius: 0 },
           { label: 'Tutor', data: dailyStats.map(d => d.tutor_count || 0), backgroundColor: '#8b5cf6', stack: 'unique', borderRadius: 4 },
           { label: 'Leads', data: dailyStats.map(d => d.leads_received || 0), backgroundColor: '#f59e0b', stack: 'leads', borderRadius: 4 },
         ],
