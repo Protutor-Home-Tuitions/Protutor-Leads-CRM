@@ -290,6 +290,14 @@ export function MissedCallsPage() {
 
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  const handleStop = async (id) => {
+    await supabase
+      .from('missed_calls')
+      .update({ form_status: 'stopped', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    fetchData();
+  };
+
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
       {/* Header row */}
@@ -498,7 +506,7 @@ export function MissedCallsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                {['Phone', 'Date/Time', 'WA Status', 'Reply', 'Form Status', 'Dup'].map(h => (
+                {['Phone', 'Date/Time', 'WA Status', 'Reply', 'Form Status', 'Dup', 'Action'].map(h => (
                   <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {h}
                   </th>
@@ -507,9 +515,9 @@ export function MissedCallsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>Loading...</td></tr>
+                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>Loading...</td></tr>
               ) : calls.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>No missed calls found</td></tr>
+                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>No missed calls found</td></tr>
               ) : (
                 calls.map((call) => (
                   <tr key={call.id} style={{ borderBottom: '1px solid #f9fafb' }}>
@@ -535,10 +543,20 @@ export function MissedCallsPage() {
                       {call.form_status === 'pending' && <span style={badgeStyle('#fef3c7', '#92400e')}>Pending</span>}
                       {call.form_status === 'NA' && <span style={badgeStyle('#f3f4f6', '#6b7280')}>NA</span>}
                       {call.form_status === 'not_yet' && <span style={badgeStyle('#ffedd5', '#9a3412')}>Not Yet</span>}
+                      {call.form_status === 'stopped' && <span style={badgeStyle('#fee2e2', '#991b1b')}>Stopped</span>}
+                      {call.form_status === 'no_reply' && <span style={badgeStyle('#f3f4f6', '#6b7280')}>No Reply</span>}
                       {!call.form_status && <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {call.is_duplicate && <span style={badgeStyle('#f3f4f6', '#6b7280')}>DUP</span>}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      {(!call.form_status || call.form_status === 'pending') && !call.is_duplicate && (
+                        <button onClick={() => handleStop(call.id)}
+                          style={{ padding: '3px 10px', borderRadius: '4px', border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}>
+                          Stop
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

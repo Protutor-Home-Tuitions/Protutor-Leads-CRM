@@ -27,8 +27,8 @@ const badgeStyle = (bg, color) => ({
 
 export default function WhatsAppInboundPage() {
   const [calls, setCalls] = useState([]);
-  const [stats, setStats] = useState({ total: 0, client: 0, tutor: 0, pending: 0, leads: 0, notYet: 0 });
-  const [monthlyStats, setMonthlyStats] = useState({ total: 0, client: 0, tutor: 0, pending: 0, leads: 0, notYet: 0 });
+  const [stats, setStats] = useState({ total: 0, unique: 0, client: 0, tutor: 0, unknown: 0, pending: 0, leads: 0, notYet: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ total: 0, unique: 0, client: 0, tutor: 0, unknown: 0, pending: 0, leads: 0, notYet: 0 });
   const [dailyStats, setDailyStats] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -37,6 +37,9 @@ export default function WhatsAppInboundPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDetails, setShowDetails] = useState(false);
   const [detailedData, setDetailedData] = useState({ dayOfWeek: [], followups: [] });
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newEntry, setNewEntry] = useState({ phone: '', type: 'client', city: '' });
+  const [saving, setSaving] = useState(false);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const dowChartRef = useRef(null);
@@ -53,14 +56,19 @@ export default function WhatsAppInboundPage() {
     loadChart();
   }, []);
 
-  const computeStats = (data) => ({
-    total: data.length,
-    client: data.filter(c => c.button_reply === 'client' && !c.is_duplicate).length,
-    tutor: data.filter(c => c.button_reply === 'tutor' && !c.is_duplicate).length,
-    pending: data.filter(c => c.form_status === 'pending').length,
-    leads: data.filter(c => c.form_status === 'lead_received').length,
-    notYet: data.filter(c => c.form_status === 'not_yet' || c.form_status === 'no_reply').length,
-  });
+  const computeStats = (data) => {
+    const total = data.length;
+    const unique = data.filter(c => !c.is_duplicate).length;
+    const client = data.filter(c => c.button_reply === 'client' && !c.is_duplicate).length;
+    const tutor = data.filter(c => c.button_reply === 'tutor' && !c.is_duplicate).length;
+    const unknown = unique - client - tutor;
+    return {
+      total, unique, client, tutor, unknown,
+      pending: data.filter(c => c.form_status === 'pending').length,
+      leads: data.filter(c => c.form_status === 'lead_received').length,
+      notYet: data.filter(c => c.form_status === 'not_yet' || c.form_status === 'no_reply').length,
+    };
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -74,6 +82,7 @@ export default function WhatsAppInboundPage() {
 
       if (filter === 'client') query = query.eq('button_reply', 'client');
       else if (filter === 'tutor') query = query.eq('button_reply', 'tutor');
+      else if (filter === 'unknown') query = query.is('button_reply', null).eq('is_duplicate', false);
       else if (filter === 'pending') query = query.eq('form_status', 'pending');
       else if (filter === 'leads') query = query.eq('form_status', 'lead_received');
       else if (filter === 'not_yet') query = query.in('form_status', ['not_yet', 'no_reply']);
@@ -170,7 +179,8 @@ export default function WhatsAppInboundPage() {
         labels: dailyStats.map(d => fmtShortDate(d.day)),
         datasets: [
           { label: 'Client', data: dailyStats.map(d => d.client_count || 0), backgroundColor: '#22c55e', stack: 'unique', borderRadius: 0 },
-          { label: 'Tutor', data: dailyStats.map(d => d.tutor_count || 0), backgroundColor: '#8b5cf6', stack: 'unique', borderRadius: 4 },
+          { label: 'Tutor', data: dailyStats.map(d => d.tutor_count || 0), backgroundColor: '#8b5cf6', stack: 'unique', borderRadius: 0 },
+          { label: 'Unknown', data: dailyStats.map(d => Math.max(0, (d.unique_inquiries || 0) - (d.client_count || 0) - (d.tutor_count || 0))), backgroundColor: '#d1d5db', stack: 'unique', borderRadius: 4 },
           { label: 'Leads', data: dailyStats.map(d => d.leads_received || 0), backgroundColor: '#f59e0b', stack: 'leads', borderRadius: 4 },
         ],
       },
@@ -212,12 +222,51 @@ export default function WhatsAppInboundPage() {
     { key: 'total', label: 'Total Messages', color: '#3b82f6' },
     { key: 'client', label: 'Client', color: '#22c55e' },
     { key: 'tutor', label: 'Tutor', color: '#8b5cf6' },
+    { key: 'unknown', label: 'Unknown', color: '#d1d5db' },
     { key: 'pending', label: 'Pending', color: '#f97316' },
     { key: 'leads', label: 'Leads', color: '#f59e0b' },
     { key: 'notYet', label: 'Closed', color: '#94a3b8' },
   ];
 
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const handleStop = async (id) => {
+    await supabase
+      .from('missed_calls')
+      .update({ form_status: 'stopped', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    fetchData();
+  };
+
+  const handleAddEntry = async () => {
+    const phone = newEntry.phone.replace(/[^0-9]/g, '');
+    const normalized = phone.length === 12 && phone.startsWith('91') ? phone.substring(2) : phone;
+    if (normalized.length !== 10) { alert('Enter a valid 10-digit phone number'); return; }
+
+    setSaving(true);
+    const { error } = await supabase.from('missed_calls').insert({
+      phone_number: normalized,
+      country_code: '91',
+      call_logged_at: new Date().toISOString(),
+      msg_status: 'sent',
+      button_reply: newEntry.type === 'unknown' ? null : 'client',
+      button_id: 'manual entry',
+      form_status: newEntry.type === 'client' ? 'pending' : null,
+      source: 'whatsapp',
+      city: newEntry.city || null,
+      is_duplicate: false,
+      followup_count: 0,
+    });
+    setSaving(false);
+
+    if (error) {
+      alert('Error: ' + error.message);
+    } else {
+      setNewEntry({ phone: '', type: 'client', city: '' });
+      setShowAddForm(false);
+      fetchData();
+    }
+  };
 
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -227,14 +276,54 @@ export default function WhatsAppInboundPage() {
           <span style={{ fontSize: '22px' }}>💬</span>
           <span style={{ fontSize: '18px', fontWeight: 700, color: '#111827' }}>WhatsApp Inquiries</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#9ca3af' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#9ca3af' }}>
           {lastRefresh && <span>Updated {lastRefresh}</span>}
           <button onClick={fetchData}
             style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: '12px' }}>
             🔄 Refresh
           </button>
+          <button onClick={() => setShowAddForm(s => !s)}
+            style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e5e7eb', background: showAddForm ? '#3b82f6' : '#fff', color: showAddForm ? '#fff' : '#374151', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}>
+            + Add Inquiry
+          </button>
         </div>
       </div>
+
+      {/* Manual entry form */}
+      {showAddForm && (
+        <div style={{ ...cardStyle, marginBottom: '16px', display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Phone Number</div>
+            <input
+              type="text" placeholder="10-digit number" value={newEntry.phone}
+              onChange={e => setNewEntry(p => ({ ...p, phone: e.target.value }))}
+              style={{ padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', width: '160px' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Type</div>
+            <select value={newEntry.type} onChange={e => setNewEntry(p => ({ ...p, type: e.target.value }))}
+              style={{ padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+              <option value="client">Client</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>City</div>
+            <select value={newEntry.city} onChange={e => setNewEntry(p => ({ ...p, city: e.target.value }))}
+              style={{ padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+              <option value="">Select</option>
+              <option value="Chennai">Chennai</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Mumbai">Mumbai</option>
+            </select>
+          </div>
+          <button onClick={handleAddEntry} disabled={saving}
+            style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 500, opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      )}
 
       {/* Row 1: All-time stat cards */}
       <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>All Time</div>
@@ -350,6 +439,7 @@ export default function WhatsAppInboundPage() {
               <option value="all">All</option>
               <option value="client">Client</option>
               <option value="tutor">Tutor</option>
+              <option value="unknown">Unknown</option>
               <option value="pending">Pending</option>
               <option value="leads">Leads</option>
               <option value="not_yet">Closed</option>
@@ -360,7 +450,7 @@ export default function WhatsAppInboundPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                {['Phone', 'Date/Time', 'Type', 'City', 'Form Status', 'Follow-ups'].map(h => (
+                {['Phone', 'Date/Time', 'Type', 'City', 'Form Status', 'Follow-ups', 'Action'].map(h => (
                   <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -373,7 +463,7 @@ export default function WhatsAppInboundPage() {
                   <td style={{ padding: '10px' }}>
                     {call.button_reply === 'client' && <span style={badgeStyle('#d1fae5', '#065f46')}>Client</span>}
                     {call.button_reply === 'tutor' && <span style={badgeStyle('#ede9fe', '#5b21b6')}>Tutor</span>}
-                    {!call.button_reply && '—'}
+                    {!call.button_reply && <span style={badgeStyle('#f3f4f6', '#6b7280')}>Unknown</span>}
                   </td>
                   <td style={{ padding: '10px' }}>{call.city || '—'}</td>
                   <td style={{ padding: '10px' }}>
@@ -381,14 +471,23 @@ export default function WhatsAppInboundPage() {
                     {call.form_status === 'lead_received' && <span style={badgeStyle('#d1fae5', '#065f46')}>Lead ✓</span>}
                     {call.form_status === 'not_yet' && <span style={badgeStyle('#f3f4f6', '#6b7280')}>Not Yet</span>}
                     {call.form_status === 'no_reply' && <span style={badgeStyle('#f3f4f6', '#6b7280')}>No Reply</span>}
+                    {call.form_status === 'stopped' && <span style={badgeStyle('#fee2e2', '#991b1b')}>Stopped</span>}
                     {call.form_status === 'NA' && <span style={badgeStyle('#f3f4f6', '#6b7280')}>NA</span>}
                     {!call.form_status && '—'}
                   </td>
                   <td style={{ padding: '10px', color: '#6b7280' }}>{call.followup_count || 0}</td>
+                  <td style={{ padding: '10px' }}>
+                    {(!call.form_status || call.form_status === 'pending') && !call.is_duplicate && (
+                      <button onClick={() => handleStop(call.id)}
+                        style={{ padding: '3px 10px', borderRadius: '4px', border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}>
+                        Stop
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {calls.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>No inquiries found</td></tr>
+                <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>No inquiries found</td></tr>
               )}
             </tbody>
           </table>
