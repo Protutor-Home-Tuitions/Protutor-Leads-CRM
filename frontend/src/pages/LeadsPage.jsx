@@ -116,7 +116,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   }, [search, statusFilter, reloadLeads]);
 
   const filtered = useMemo(() => {
-    let list = leads;
+    let list = [...leads];
     if (isCoordinator) list = list.filter((l) => currentUser.cities.includes(l.city) && !l.movedToSupport);
     if (isSupport) list = list.filter((l) => l.movedToSupport && currentUser.cities.includes(l.city));
     // Status filter is now applied server-side (see useEffect above)
@@ -458,6 +458,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {lead.parentName || '—'}
+                  {lead.movedToSupport && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', background: '#7c3aed', color: '#fff', fontSize: '10px', fontWeight: 800, marginLeft: '6px', verticalAlign: 'middle' }}>S</span>}
                 </div>
                 {lead.studentName && (
                   <div style={{ fontSize: '12px', color: '#9ca3af' }}>Student: {lead.studentName}</div>
@@ -839,6 +840,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                           <div>
                             <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>
                               {lead.parentName || lead.mobile}
+                              {lead.movedToSupport && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#7c3aed', color: '#fff', fontSize: '11px', fontWeight: 800, marginLeft: '6px', verticalAlign: 'middle' }}>S</span>}
                               {lead.classMode && lead.classMode !== 'Any' && (
                                 <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: lead.classMode === 'Online' ? '#eff6ff' : '#f3f4f6', color: lead.classMode === 'Online' ? '#2563eb' : '#6b7280', border: `1px solid ${lead.classMode === 'Online' ? '#bfdbfe' : '#e5e7eb'}` }}>
                                   {lead.classMode}

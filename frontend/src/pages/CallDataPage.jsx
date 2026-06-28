@@ -89,7 +89,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   }, [search, statusFilter, reloadCallData]);
 
   const filtered = useMemo(() => {
-    let list = callData;
+    let list = [...callData];
     // Status filter is now applied server-side (see useEffect above)
     if (cityFilter !== 'all') list = list.filter((n) => n.city === cityFilter);
     if (categoryFilter !== 'all') list = list.filter((n) => n.category === categoryFilter);
