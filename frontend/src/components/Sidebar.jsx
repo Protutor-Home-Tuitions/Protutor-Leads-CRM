@@ -10,6 +10,7 @@ export function Sidebar({ currentPage, onNavigate, currentUser, onLogout }) {
     ...(isManager ? [{ id: 'users', label: 'User Management', icon: Settings }] : []),
     ...(isManager ? [{ id: 'missedcalls', label: 'Missed Calls', icon: PhoneMissed }] : []),
     ...(isManager ? [{ id: 'whatsapp_inbound', label: 'WA Inquiries', icon: MessageCircle }] : []),
+    ...(isManager ? [{ id: 'reviews', label: 'Reviews', icon: MessageCircle }] : []),
   ];
 
   return (
