@@ -420,13 +420,14 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
     const locationStr = lead.city === 'Online'
       ? [lead.city, lead.onlineLocation].filter(Boolean).join(', ')
       : [lead.city, lead.locality].filter(Boolean).join(', ');
+    const isInternational = lead.city === 'Online' && lead.countryCode && lead.countryCode !== '91';
     const academicStr = [lead.standard, lead.subjects].filter(Boolean).join(' - ');
 
     return (
       <div
         style={{
-          background: dueToday ? '#fffbeb' : '#fff',
-          border: dueToday ? '1.5px solid #fbbf24' : '1.5px solid #e0e4ef',
+          background: isInternational ? '#eff6ff' : dueToday ? '#fffbeb' : '#fff',
+          border: isInternational ? '1.5px solid #60a5fa' : dueToday ? '1.5px solid #fbbf24' : '1.5px solid #e0e4ef',
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -528,7 +529,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
               <MapPin size={15} color="#9ca3af" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{locationStr}</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{locationStr}{isInternational && <span style={{ marginLeft: '6px', padding: '1px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: '#2563eb', color: '#fff' }}>🌐 International</span>}</div>
                 <div style={{ fontSize: '12px', color: '#9ca3af' }}>Location</div>
               </div>
             </div>
@@ -819,11 +820,12 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                   const hasDiscount = lead.monthlyEstimate && (String(lead.monthlyEstimate).toLowerCase().includes('15%') || String(lead.monthlyEstimate).toLowerCase().includes('disc'));
                   const quoteRejected = lead.quoteAccepted && (String(lead.quoteAccepted).toLowerCase() === 'no' || lead.quoteAccepted === false);
                   const hasFormData = lead.hourlyFee || lead.monthlyEstimate || lead.daysPerWeek || lead.hoursPerSession || lead.mapsLink || lead.expectedQuote || (lead.tutorGender && lead.tutorGender !== 'Any') || (lead.quoteAccepted !== undefined && lead.quoteAccepted !== null && lead.quoteAccepted !== '');
+                  const isIntl = lead.city === 'Online' && lead.countryCode && lead.countryCode !== '91';
                   return (
                     <React.Fragment key={lead.id}>
-                    <tr style={{ borderBottom: 'none' }}
-                      onMouseEnter={ev => { ev.currentTarget.style.background = '#fafbff'; }}
-                      onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; }}>
+                    <tr style={{ borderBottom: 'none', background: isIntl ? '#eff6ff' : 'transparent' }}
+                      onMouseEnter={ev => { ev.currentTarget.style.background = isIntl ? '#dbeafe' : '#fafbff'; }}
+                      onMouseLeave={ev => { ev.currentTarget.style.background = isIntl ? '#eff6ff' : 'transparent'; }}>
                       <td style={{ padding: '18px 20px', minWidth: '240px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <button type="button" onClick={() => onToggleStar(lead.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
@@ -847,7 +849,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                         </div>
                       </td>
                       <td style={{ padding: '18px 20px', minWidth: '200px' }}>
-                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 600 }}>📍 {(lead.city === 'Online' ? [lead.city, lead.onlineLocation] : [lead.city, lead.locality]).filter(Boolean).join(', ') || '—'}</div>
+                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 600 }}>📍 {(lead.city === 'Online' ? [lead.city, lead.onlineLocation] : [lead.city, lead.locality]).filter(Boolean).join(', ') || '—'}{isIntl && <span style={{ marginLeft: '6px', padding: '1px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: '#2563eb', color: '#fff' }}>🌐 International</span>}</div>
                         {(lead.standard || lead.subjects) && <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>📚 {[lead.standard, lead.subjects].filter(Boolean).join(' - ')}</div>}
                         {lead.studentName && <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '3px' }}>Student: {lead.studentName}</div>}
                       </td>
