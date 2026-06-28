@@ -99,7 +99,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
     if (typeof reloadLeads !== 'function') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (search.length >= 3) {
+    if (search.length >= 5) {
       // Server-side search all leads (debounced 400ms)
       debounceRef.current = setTimeout(() => {
         reloadLeads({ search });
@@ -417,7 +417,9 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
     const pstatus = phoneStatusMap.get(digitsOnly(lead.mobile)) || {};
     const isClient = !!pstatus.isClient;
     const isTutor = !!pstatus.isTutor;
-    const locationStr = [lead.city, lead.locality].filter(Boolean).join(', ');
+    const locationStr = lead.city === 'Online'
+      ? [lead.city, lead.onlineLocation].filter(Boolean).join(', ')
+      : [lead.city, lead.locality].filter(Boolean).join(', ');
     const academicStr = [lead.standard, lead.subjects].filter(Boolean).join(' - ');
 
     return (
@@ -845,7 +847,7 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
                         </div>
                       </td>
                       <td style={{ padding: '18px 20px', minWidth: '200px' }}>
-                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 600 }}>📍 {[lead.city, lead.locality].filter(Boolean).join(', ') || '—'}</div>
+                        <div style={{ fontSize: '15px', color: '#374151', fontWeight: 600 }}>📍 {(lead.city === 'Online' ? [lead.city, lead.onlineLocation] : [lead.city, lead.locality]).filter(Boolean).join(', ') || '—'}</div>
                         {(lead.standard || lead.subjects) && <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>📚 {[lead.standard, lead.subjects].filter(Boolean).join(' - ')}</div>}
                         {lead.studentName && <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '3px' }}>Student: {lead.studentName}</div>}
                       </td>

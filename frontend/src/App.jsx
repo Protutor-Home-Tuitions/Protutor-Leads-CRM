@@ -5,9 +5,6 @@ import { LeadsPage } from './pages/LeadsPage';
 import { CallDataPage } from './pages/CallDataPage';
 import { UsersPage } from './pages/UsersPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { MissedCallsPage } from './pages/MissedCallsPage';
-import WhatsAppInboundPage from './pages/WhatsAppInboundPage';
-import ReviewsPage from './pages/ReviewsPage';
 import { Bell, Phone, Clock, X } from 'lucide-react';
 import {
   fetchLeads,
@@ -26,9 +23,6 @@ const PAGE_TITLES = {
   calldata: 'Call Data',
   users: 'User Management',
   dashboard: 'Dashboard',
-  missedcalls: 'Missed Calls',
-  whatsapp_inbound: 'WA Inquiries',
-  reviews: 'Reviews',
 };
 
 export default function App() {
@@ -75,20 +69,25 @@ export default function App() {
   }, [user]);
 
   // ---- Reload functions exposed to pages so they can refetch with new filters ----
-  // Default to status=open so initial load and reloads with no args stay small.
+  // Version counters ensure stale API responses (from cancelled searches) don't overwrite fresh data.
+  const leadsVersion = useRef(0);
+  const callDataVersion = useRef(0);
+
   const reloadLeads = useCallback(async (params = { status: 'open' }) => {
+    const v = ++leadsVersion.current;
     try {
       const ls = await fetchLeads(params);
-      setLeads(ls || []);
+      if (v === leadsVersion.current) setLeads(ls || []);
     } catch (e) {
       console.error('Failed to load leads:', e);
     }
   }, []);
 
   const reloadCallData = useCallback(async (params = { status: 'open' }) => {
+    const v = ++callDataVersion.current;
     try {
       const cd = await fetchCallData(params);
-      setCallData(cd || []);
+      if (v === callDataVersion.current) setCallData(cd || []);
     } catch (e) {
       console.error('Failed to load call data:', e);
     }
@@ -522,21 +521,6 @@ export default function App() {
           {page === 'dashboard' && (
             <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
               <DashboardPage currentUser={user} />
-            </div>
-          )}
-          {page === 'missedcalls' && user.role === 'manager' && (
-            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
-              <MissedCallsPage />
-            </div>
-          )}
-          {page === 'whatsapp_inbound' && user.role === 'manager' && (
-            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
-              <WhatsAppInboundPage />
-            </div>
-          )}
-          {page === 'reviews' && user.role === 'manager' && (
-            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
-              <ReviewsPage />
             </div>
           )}
         </div>

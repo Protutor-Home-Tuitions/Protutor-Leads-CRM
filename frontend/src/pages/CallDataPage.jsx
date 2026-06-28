@@ -73,7 +73,7 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
     if (typeof reloadCallData !== 'function') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (search.length >= 3) {
+    if (search.length >= 5) {
       // Server-side search all call data (debounced 400ms)
       debounceRef.current = setTimeout(() => {
         reloadCallData({ search });
