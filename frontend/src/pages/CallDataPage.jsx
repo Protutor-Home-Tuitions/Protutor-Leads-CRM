@@ -60,11 +60,11 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
   const isManager = currentUser?.role === 'manager';
 
   // ---- Refetch from server when statusFilter or search changes ----
-  // Skip the very first render (App.jsx already fetched with status=open).
-  // When search has 3+ chars → server-side search across ALL records.
-  // Otherwise → fetch by status filter as before.
+  // 6+ chars → server search. 0 chars → restore status view.
+  // 1-5 chars → client-side filter only (no API call, no flicker).
   const isInitialMount = useRef(true);
   const debounceRef = useRef(null);
+  const prevSearchRef = useRef('');
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -73,13 +73,14 @@ export function CallDataPage({ callData, setCallData, currentUser, phoneStatusMa
     if (typeof reloadCallData !== 'function') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (search.length >= 5) {
-      // Server-side search all call data (debounced 400ms)
+    const searchChanged = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
+
+    if (search.length >= 6) {
       debounceRef.current = setTimeout(() => {
         reloadCallData({ search });
       }, 400);
-    } else {
-      // No search or partial — fetch by status
+    } else if (search.length === 0 || !searchChanged) {
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       reloadCallData(params);
     }

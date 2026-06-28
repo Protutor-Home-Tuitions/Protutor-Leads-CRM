@@ -86,11 +86,12 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
   const isSupport = currentUser?.role === 'support';
 
   // ---- Refetch from server when statusFilter or search changes ----
-  // Skip the very first render (App.jsx already fetched with status=open).
-  // When search has 3+ chars → server-side search across ALL records.
-  // Otherwise → fetch by status filter as before.
+  // 6+ chars → server search. 0 chars → restore status view.
+  // 1-5 chars → client-side filter only (no API call, no flicker).
+  // Status dropdown change → always refetch (unless search is 6+).
   const isInitialMount = useRef(true);
   const debounceRef = useRef(null);
+  const prevSearchRef = useRef('');
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -99,13 +100,14 @@ export function LeadsPage({ leads, setLeads, currentUser, phoneStatusMap = new M
     if (typeof reloadLeads !== 'function') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (search.length >= 5) {
-      // Server-side search all leads (debounced 400ms)
+    const searchChanged = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
+
+    if (search.length >= 6) {
       debounceRef.current = setTimeout(() => {
         reloadLeads({ search });
       }, 400);
-    } else {
-      // No search or partial — fetch by status
+    } else if (search.length === 0 || !searchChanged) {
       const params = statusFilter === 'all' ? {} : { status: statusFilter };
       reloadLeads(params);
     }
