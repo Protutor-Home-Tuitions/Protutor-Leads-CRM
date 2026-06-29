@@ -5,6 +5,9 @@ import { LeadsPage } from './pages/LeadsPage';
 import { CallDataPage } from './pages/CallDataPage';
 import { UsersPage } from './pages/UsersPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { MissedCallsPage } from './pages/MissedCallsPage';
+import WhatsAppInboundPage from './pages/WhatsAppInboundPage';
+import ReviewsPage from './pages/ReviewsPage';
 import { Bell, Phone, Clock, X } from 'lucide-react';
 import {
   fetchLeads,
@@ -23,6 +26,9 @@ const PAGE_TITLES = {
   calldata: 'Call Data',
   users: 'User Management',
   dashboard: 'Dashboard',
+  missedcalls: 'Missed Calls',
+  whatsapp_inbound: 'WA Inquiries',
+  reviews: 'Reviews',
 };
 
 export default function App() {
@@ -521,6 +527,21 @@ export default function App() {
           {page === 'dashboard' && (
             <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
               <DashboardPage currentUser={user} />
+            </div>
+          )}
+          {page === 'missedcalls' && user.role === 'manager' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <MissedCallsPage />
+            </div>
+          )}
+          {page === 'whatsapp_inbound' && user.role === 'manager' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <WhatsAppInboundPage />
+            </div>
+          )}
+          {page === 'reviews' && user.role === 'manager' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>
+              <ReviewsPage />
             </div>
           )}
         </div>
