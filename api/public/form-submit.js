@@ -33,6 +33,23 @@ function cleanOrNull(value, maxLen) {
 function digitsOnly(value, maxLen) {
   return clean(value, maxLen).replace(/[^0-9]/g, '')
 }
+
+// Normalize an Indian mobile number to exactly 10 digits.
+// Handles: 9876543210, 09876543210, 919876543210, +91-98765-43210
+// Returns null for anything that doesn't end up as a valid 10-digit Indian mobile.
+function normalizePhone(raw) {
+  let d = digitsOnly(raw, 20)
+  // Strip leading zeros
+  d = d.replace(/^0+/, '')
+  // Strip country code 91 if present (12 digits starting with 91, next digit 6-9)
+  if (d.length === 12 && d.startsWith('91') && '6789'.includes(d[2])) {
+    d = d.slice(2)
+  }
+  // Must be exactly 10 digits starting with 6-9
+  if (d.length === 10 && '6789'.includes(d[0])) return d
+  // Return cleaned digits anyway (for international numbers)
+  return d.length >= 7 ? d : null
+}
 function normalizeClassMode(value) {
   const v = clean(value, 30).toLowerCase()
   if (v === 'online') return 'Online'
@@ -84,6 +101,36 @@ export default async function handler(req, res) {
   const body = await parseBody(req)
   const action = clean(body.action, 30) || 'initial_save'
 
+  // ── action: log_event ────────────────────────────────────────────
+  // Logs funnel events (page views, save attempts, errors) for analytics.
+  // Lightweight — no validation beyond field length capping.
+  if (action === 'log_event') {
+    const sessionId  = clean(body.session_id, 64)
+    const eventType  = clean(body.event_type, 50)
+    if (!sessionId || !eventType) {
+      return res.status(400).json({ error: 'session_id and event_type required' })
+    }
+    const ua = clean(req.headers['user-agent'], 500)
+    const ip = clean(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '', 50).split(',')[0].trim()
+    const { error: evErr } = await supabase
+      .from('form_events')
+      .insert({
+        session_id:  sessionId,
+        event_type:  eventType,
+        request_id:  cleanOrNull(body.request_id, 64),
+        page_number: body.page_number ? parseInt(body.page_number, 10) : null,
+        details:     body.details || null,
+        user_agent:  ua,
+        ip_address:  ip || null,
+      })
+    if (evErr) {
+      // Log to server console but don't fail the response - event logging
+      // is best-effort and must never block the user's form flow.
+      console.warn('[form-submit] log_event insert failed:', evErr.message)
+    }
+    return res.status(200).json({ ok: true })
+  }
+
   const requestId = clean(body.request_id, 64)
   if (!requestId) {
     return res.status(400).json({ error: 'request_id is required' })
@@ -124,9 +171,9 @@ export default async function handler(req, res) {
   // POLICY Y: only mobile is required. Everything else can be missing.
   const parentName  = clean(body.parent_name, 200)
   const studentName = clean(body.student_name, 200)
-  const mobile      = digitsOnly(body.mobile, 20)
+  const mobile      = normalizePhone(body.mobile)
 
-  if (!mobile || mobile.length < 5) {
+  if (!mobile) {
     return res.status(400).json({ error: 'a valid mobile number is required' })
   }
 
@@ -143,6 +190,10 @@ export default async function handler(req, res) {
   const city            = isOnline ? 'Online' : clean(rawCity, 50)
   const onlineLocation  = isOnline ? (rawCity || null) : null
 
+  // Country code: strip the + and normalize
+  const rawCC = digitsOnly(body.country_code, 5)
+  const countryCode = (rawCC === '91' || !rawCC) ? '91' : rawCC
+
   // Build the row WITHOUT quote_accepted/expected_quote — those belong
   // to the quote_update step and must not be clobbered if it already ran.
   const lead = {
@@ -151,7 +202,7 @@ export default async function handler(req, res) {
     parent_name:      parentName || 'Unknown',
     student_name:     studentName,
     mobile:           mobile,
-    country_code:     digitsOnly(body.country_code, 5) || '91',
+    country_code:     countryCode,
     standard:         clean(body.standard, 100),
     subjects:         clean(body.subjects, 1000),
     class_mode:       classMode,
@@ -176,11 +227,17 @@ export default async function handler(req, res) {
     added_by_name:    'Form',
   }
 
-  // Check if the row already exists for this request_id. If it does, we
-  // UPDATE only the fields we own (initial_save fields) and leave
-  // quote_accepted / expected_quote untouched — those may have been set
-  // by a later quote_update call (out-of-order arrival or queue flush).
-  const { data: existing, error: lookupErr } = await supabase
+  // ── DEDUP STRATEGY (3 layers) ──────────────────────────────────────
+  // Layer 1: Same request_id → same form session retrying → update
+  // Layer 2: Same phone + status open → same person, new form session → update
+  // Layer 3: No match → truly new lead → insert
+  //
+  // This prevents Chaithra from appearing 4 times in the CRM because she
+  // filled the form 4 times. All 4 attempts update the same row.
+  // If her lead is CLOSED and she fills again → new lead (new enquiry).
+
+  // Layer 1: check by request_id
+  const { data: byReqId, error: lookupErr } = await supabase
     .from('leads')
     .select('id, quote_accepted')
     .eq('request_id', requestId)
@@ -191,37 +248,67 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not save lead' })
   }
 
-  if (existing) {
-    // Row already exists — UPDATE the initial_save fields only.
+  if (byReqId) {
+    // Same request_id exists → UPDATE (same session retry or queue flush)
     const { error: updErr } = await supabase
       .from('leads')
       .update(lead)
       .eq('request_id', requestId)
     if (updErr) {
-      console.error('[form-submit] initial_save update error:', updErr.message)
+      console.error('[form-submit] initial_save update (request_id) error:', updErr.message)
       return res.status(500).json({ error: 'Could not save lead' })
     }
-  } else {
-    // New row — INSERT with quote_accepted = 'Pending' as default.
-    const { error: insErr } = await supabase
+    return res.status(200).json({ ok: true, request_id: requestId, dedup: 'request_id' })
+  }
+
+  // Layer 2: check by phone + open status
+  const { data: byPhone, error: phoneLookupErr } = await supabase
+    .from('leads')
+    .select('id, request_id, quote_accepted')
+    .eq('mobile', mobile)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (phoneLookupErr) {
+    console.error('[form-submit] phone lookup error:', phoneLookupErr.message)
+    // Non-fatal: fall through to insert
+  }
+
+  if (byPhone) {
+    // Same phone, open lead exists → UPDATE that row with fresh data
+    // Keep the original request_id so quote_update can still find it
+    const { request_id: _drop, ...leadWithoutReqId } = lead
+    const { error: updErr } = await supabase
       .from('leads')
-      .insert({ ...lead, quote_accepted: 'Pending' })
-    if (insErr) {
-      // 23505 = unique_violation: another concurrent insert just won.
-      // That's fine — the row exists now, retry as update once.
-      if (insErr.code === '23505') {
-        const { error: retryErr } = await supabase
-          .from('leads')
-          .update(lead)
-          .eq('request_id', requestId)
-        if (retryErr) {
-          console.error('[form-submit] insert→update retry error:', retryErr.message)
-          return res.status(500).json({ error: 'Could not save lead' })
-        }
-      } else {
-        console.error('[form-submit] initial_save insert error:', insErr.message)
+      .update(leadWithoutReqId)
+      .eq('id', byPhone.id)
+    if (updErr) {
+      console.error('[form-submit] initial_save update (phone dedup) error:', updErr.message)
+      return res.status(500).json({ error: 'Could not save lead' })
+    }
+    return res.status(200).json({ ok: true, request_id: byPhone.request_id, dedup: 'phone' })
+  }
+
+  // Layer 3: No match → INSERT new lead
+  const { error: insErr } = await supabase
+    .from('leads')
+    .insert({ ...lead, quote_accepted: 'Pending' })
+  if (insErr) {
+    // 23505 = unique_violation: another concurrent insert just won.
+    if (insErr.code === '23505') {
+      const { error: retryErr } = await supabase
+        .from('leads')
+        .update(lead)
+        .eq('request_id', requestId)
+      if (retryErr) {
+        console.error('[form-submit] insert→update retry error:', retryErr.message)
         return res.status(500).json({ error: 'Could not save lead' })
       }
+    } else {
+      console.error('[form-submit] initial_save insert error:', insErr.message)
+      return res.status(500).json({ error: 'Could not save lead' })
     }
   }
 
